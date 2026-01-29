@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import helmet from "helmet";
-import { type RedisReply, RedisStore } from "rate-limit-redis";
+import { RedisReply, RedisStore } from "rate-limit-redis";
 import { Redis } from "ioredis";
 import { RateLimiterRedis } from "rate-limiter-flexible";
 import { rateLimit } from "express-rate-limit";
