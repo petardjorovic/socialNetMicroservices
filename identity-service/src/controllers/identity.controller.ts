@@ -11,9 +11,14 @@ export const userRegistration = async (req: Request, res: Response) => {
     const result = await registrationSchema.safeParseAsync(req.body);
     if (!result.success) {
       logger.warn("Validation error", result.error.message);
+
+      const errors = result.error.issues.map((i) => ({
+        field: i.path.join("."),
+        message: i.message,
+      }));
       return res.status(400).json({
         success: false,
-        message: result.error.message,
+        message: errors,
       });
     }
     const { email, password, username } = result.data;
