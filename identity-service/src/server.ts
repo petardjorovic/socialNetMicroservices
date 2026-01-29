@@ -13,6 +13,7 @@ import configurationCors from "./middlewares/configurationCors.js";
 import { MONGO_URI, PORT, REDIS_URL } from "./utils/env.js";
 
 const app = express();
+// app.set("trust proxy", 1)   //* ovo treba dodati kad odradis apiGateway
 
 // connect to mongoDB
 mongoose
@@ -47,9 +48,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   rateLimiter
     .consume(key)
     .then(() => next())
-    .catch(() => {
-      logger.warn(`Rate limit exceeded for IP: ${key}`);
-      res.status(429).json({ success: false, message: "Too many requests" });
+    .catch((err) => {
+      if (err && typeof err.msBeforeNext === "number") {
+        logger.warn(`Rate limit exceeded for IP: ${key}`);
+        return res
+          .status(429)
+          .json({ success: false, message: "Too many requests" });
+      }
+      logger.error("Rate limiter error", err);
+      return next(err);
     });
 });
 
@@ -85,4 +92,5 @@ app.listen(PORT, () => {
 // unhandled promise rejection
 process.on("unhandledRejection", (reason, promise) => {
   logger.error(`Unhandled rejection at ${promise}, reason: ${reason}`);
+  process.exit(1);
 });

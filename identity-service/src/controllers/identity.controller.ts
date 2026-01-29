@@ -16,6 +16,7 @@ export const userRegistration = async (req: Request, res: Response) => {
         field: i.path.join("."),
         message: i.message,
       }));
+
       return res.status(400).json({
         success: false,
         message: errors,

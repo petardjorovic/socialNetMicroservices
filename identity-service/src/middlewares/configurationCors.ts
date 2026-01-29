@@ -1,14 +1,11 @@
 import cors from "cors";
 
+const ALLOWED_ORIGINS = ["http://localhost:5173", "https://myexamplesite.com"];
+
 const configurationCors = () => {
   return cors({
     origin: (origin, callback) => {
-      const allowedOrigin = [
-        "http://localhost:5173",
-        "https://myexamplesite.com",
-      ];
-
-      if (!origin || allowedOrigin.includes(origin)) {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
