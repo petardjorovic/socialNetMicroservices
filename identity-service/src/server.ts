@@ -23,6 +23,14 @@ mongoose
 
 const redisClient = new Redis(REDIS_URL);
 
+redisClient.on("error", (err) => {
+  logger.error("Redis connection error", err);
+});
+
+redisClient.on("connect", () => {
+  logger.info("Connected to Redis");
+});
+
 // middlewares
 app.use(helmet());
 app.use(configurationCors());
@@ -30,7 +38,11 @@ app.use(express.json());
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`Received ${req.method} request to ${req.url}`);
-  logger.info(`Request body, ${req.body}`);
+  // Avoid logging sensitive fields like password, token, etc.
+  if (req.body && typeof req.body === "object") {
+    const { password, token, ...safeBody } = req.body;
+    logger.info(`Request body, ${JSON.stringify(safeBody)}`);
+  }
   next();
 });
 
@@ -43,7 +55,15 @@ const rateLimiter = new RateLimiterRedis({
 });
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const key = req.ip ?? "unknown-ip";
+  // const key = req.ip ?? "unknown-ip";
+  const key = req.ip;
+
+  if (!key) {
+    logger.warn("Request with undefined IP rejected");
+    return res
+      .status(400)
+      .json({ success: false, message: "Unable to identify client" });
+  }
 
   rateLimiter
     .consume(key)
@@ -92,5 +112,10 @@ app.listen(PORT, () => {
 // unhandled promise rejection
 process.on("unhandledRejection", (reason, promise) => {
   logger.error(`Unhandled rejection at ${promise}, reason: ${reason}`);
-  process.exit(1);
+  // Graceful shutdown
+  setTimeout(() => {
+    Promise.all([mongoose.connection.close(), redisClient.quit()]).finally(() =>
+      process.exit(1),
+    );
+  }, 1000);
 });
