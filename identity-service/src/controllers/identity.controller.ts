@@ -3,6 +3,7 @@ import logger from "../utils/logger.js";
 import { loginSchema, registrationSchema } from "../utils/validationSchemas.js";
 import UserModel from "../models/user.model.js";
 import generateTokens from "../utils/generateToken.js";
+import RefreshTokenModel from "../models/refresh-token.model.js";
 
 // USER REGISTRATION
 export const userRegistration = async (req: Request, res: Response) => {
@@ -14,7 +15,7 @@ export const userRegistration = async (req: Request, res: Response) => {
 
       const errors = result.error.issues.map((i) => ({
         field: i.path.join("."),
-        message: i.message,
+        error: i.message,
       }));
 
       return res.status(400).json({
@@ -106,7 +107,7 @@ export const userLogin = async (req: Request, res: Response) => {
       refreshToken,
     });
   } catch (error) {
-    logger.error("User login error occured", error);
+    logger.error("User login error occurred", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -114,6 +115,6 @@ export const userLogin = async (req: Request, res: Response) => {
   }
 };
 
-// refresh token
+// USER REFRESH TOKEN
 
 // logout
