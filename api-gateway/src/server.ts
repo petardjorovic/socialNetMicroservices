@@ -45,7 +45,9 @@ const rateLimiter = rateLimit({
   // Express request handler that sends back a response when a client is rate-limited
   handler: (req: Request, res: Response) => {
     logger.warn(`Sensitive endpoint rate limit exceeded for IP ${req.ip}`);
-    res.status(429).json({ success: false, message: "Too many requests" });
+    return res
+      .status(429)
+      .json({ success: false, message: "Too many requests" });
   },
   // Redis store configuration
   store: new RedisStore({
@@ -119,4 +121,25 @@ app.listen(PORT, () => {
   logger.info(`API Gateway is running on port ${PORT}`);
   logger.info(`Identity service is running on url ${IDENTITY_SERVICE_URL}`);
   logger.info(`Redis Url ${REDIS_URL} `);
+});
+
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received, shutting down gracefully`);
+  await redisClient.quit();
+  //   await mongoose.connection.close();
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Optionally handle uncaught errors
+process.on("unhandledRejection", (reason) => {
+  logger.error(`Unhandled Rejection: ${reason}`);
+  gracefulShutdown("unhandledRejection");
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error(`Uncaught Exception: ${err}`);
+  gracefulShutdown("uncaughtException");
 });
