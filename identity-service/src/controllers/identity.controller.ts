@@ -138,12 +138,13 @@ export const userRefreshToken = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: errors });
     }
 
-    //* check whether token exists/valid in db
-    const storedToken = await RefreshTokenModel.findOne({
+    //* check whether token exists/valid in db and delete it
+    const storedToken = await RefreshTokenModel.findOneAndDelete({
       token: result.data.refreshToken,
+      expiresAt: { $gt: new Date() },
     });
 
-    if (!storedToken || storedToken.expiresAt < new Date()) {
+    if (!storedToken) {
       logger.warn("Invalid or expired refresh token");
 
       return res.status(401).json({
@@ -166,9 +167,6 @@ export const userRefreshToken = async (req: Request, res: Response) => {
     //* generate new tokens
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
       await generateTokens(user);
-
-    //* delete old refresh token from db
-    await RefreshTokenModel.deleteOne({ _id: storedToken._id });
 
     //* return response
     return res.status(200).json({

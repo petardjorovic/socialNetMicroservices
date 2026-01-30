@@ -19,6 +19,6 @@ export const registrationSchema = loginSchema
 
 export const refreshTokenSchema = z
   .object({
-    refreshToken: z.string(),
+    refreshToken: z.string().min(80),
   })
   .strict();
