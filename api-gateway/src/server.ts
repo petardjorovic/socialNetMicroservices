@@ -6,7 +6,12 @@ import rateLimit from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { type RedisReply } from "rate-limit-redis";
 import configurationCors from "./middlewares/configurationCors.js";
-import { IDENTITY_SERVICE_URL, PORT, REDIS_URL } from "./utils/env.js";
+import {
+  IDENTITY_SERVICE_URL,
+  PORT,
+  POST_SERVICE_URL,
+  REDIS_URL,
+} from "./utils/env.js";
 import logger from "./utils/logger.js";
 import proxy, { ProxyOptions } from "express-http-proxy";
 import errorHandler from "./middlewares/errorHandler.js";
@@ -16,6 +21,7 @@ import {
   RequestOptions,
 } from "node:http";
 import crypto from "crypto";
+import authMiddleware from "./middlewares/authMiddleware.js";
 
 const app = express();
 //TODO app.set("trust proxy", 1); // ako budem iza proxija
@@ -97,7 +103,6 @@ app.use(
       srcReq: Request,
     ) => {
       proxyReqOpts.headers["Content-Type"] = "application/json";
-      //TODO   proxyReqOpts.headers["authorization"] = srcReq.headers.authorization;
       //TODO   const requestId = srcReq.headers["x-request-id"] ?? crypto.randomUUID();
       return proxyReqOpts;
     },
@@ -115,11 +120,43 @@ app.use(
   }),
 );
 
+// setting up proxy for our post service
+app.use(
+  "/v1/posts",
+  authMiddleware,
+  proxy(POST_SERVICE_URL, {
+    ...proxyOptions,
+    proxyReqOptDecorator: (
+      proxyReqOpts: Omit<RequestOptions, "headers"> & {
+        headers: OutgoingHttpHeaders;
+      },
+      srcReq: Request,
+    ) => {
+      proxyReqOpts.headers["Content-Type"] = "application/json";
+      proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId;
+      //TODO   const requestId = srcReq.headers["x-request-id"] ?? crypto.randomUUID();
+      return proxyReqOpts;
+    },
+    userResDecorator: (
+      proxyRes: IncomingMessage,
+      proxyResData: any,
+      userReq: Request,
+      userRes: Response,
+    ) => {
+      logger.info(
+        `Response received from Post service: ${proxyRes.statusCode}`,
+      );
+      return proxyResData;
+    },
+  }),
+);
+
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   logger.info(`API Gateway is running on port ${PORT}`);
   logger.info(`Identity service is running on url ${IDENTITY_SERVICE_URL}`);
+  logger.info(`Post service is running on url ${POST_SERVICE_URL}`);
   logger.info(`Redis Url ${REDIS_URL} `);
 });
 
