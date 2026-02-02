@@ -28,7 +28,10 @@ export const createPost = async (req: Request, res: Response) => {
       mediaIds,
     });
     await newlyCreatedPost.save();
-    logger.info("Post created successfully", newlyCreatedPost);
+    logger.info("Post created successfully", {
+      postId: newlyCreatedPost._id,
+      userId: newlyCreatedPost.user,
+    });
 
     return res
       .status(201)

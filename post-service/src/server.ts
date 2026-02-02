@@ -13,13 +13,25 @@ import errorHandler from "./middlewares/errorHandler.js";
 // import "./utils/redis.js";
 
 const app = express();
+// app.set("trust proxy", 1);
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => logger.info("Connected to MongoDB"))
-  .catch((err) => {
+let server: ReturnType<typeof app.listen> | undefined;
+
+const start = async () => {
+  try {
+    await mongoose.connect(MONGO_URI);
+    logger.info("Connected to MongoDB");
+
+    server = app.listen(PORT, () => {
+      logger.info(`Post service is running on port ${PORT}`);
+    });
+  } catch (err) {
     logger.error("MongoDB connection error", err);
-  });
+    process.exit(1);
+  }
+};
+
+void start();
 
 // middlewares
 app.use(helmet());
@@ -63,27 +75,32 @@ app.use("/api/posts", postRouter);
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`Post service is running on port ${PORT}`);
-});
-
-const gracefulShutdown = async (signal: string) => {
+const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);
-  await redisClient.quit();
-  await mongoose.connection.close();
-  process.exit(0);
+  try {
+    await redisClient.quit();
+    await mongoose.connection.close();
+  } catch (error) {
+    logger.error("Shutdown error", error);
+    exitCode = 1;
+  }
+
+  if (server) {
+    server.close(() => process.exit(exitCode));
+  } else {
+    process.exit(exitCode);
+  }
 };
 
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
 
-// Optionally handle uncaught errors
 process.on("unhandledRejection", (reason) => {
   logger.error(`Unhandled Rejection: ${reason}`);
-  gracefulShutdown("unhandledRejection");
+  void gracefulShutdown("unhandledRejection", 1);
 });
 
 process.on("uncaughtException", (err) => {
   logger.error(`Uncaught Exception: ${err}`);
-  gracefulShutdown("uncaughtException");
+  void gracefulShutdown("uncaughtException", 1);
 });

@@ -1,5 +1,6 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import logger from "../utils/logger.js";
+import { NODE_ENV } from "../utils/env.js";
 
 const errorHandler: ErrorRequestHandler = (
   err: Error,
@@ -9,9 +10,10 @@ const errorHandler: ErrorRequestHandler = (
 ) => {
   logger.error(err.stack);
 
-  return res
-    .status(500)
-    .json({ message: err.message || "Internal server error" });
+  const message =
+    NODE_ENV === "development" ? err.message : "Internal server error";
+
+  return res.status(500).json({ message });
 };
 
 export default errorHandler;

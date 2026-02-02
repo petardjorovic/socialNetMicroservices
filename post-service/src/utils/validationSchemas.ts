@@ -1,6 +1,6 @@
 import z from "zod";
 
-export type createPost = z.infer<typeof createPostSchema>;
+export type CreatePost = z.infer<typeof createPostSchema>;
 
 export const createPostSchema = z.object({
   content: z.string().min(1),
