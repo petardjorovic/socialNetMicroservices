@@ -22,3 +22,9 @@ export const refreshTokenSchema = z
     refreshToken: z.string().min(80),
   })
   .strict();
+
+export const logoutSchema = z
+  .object({
+    refreshToken: z.string().min(80),
+  })
+  .strict();

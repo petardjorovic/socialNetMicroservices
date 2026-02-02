@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import logger from "../utils/logger.js";
 import {
   loginSchema,
+  logoutSchema,
   refreshTokenSchema,
   registrationSchema,
 } from "../utils/validationSchemas.js";
@@ -51,7 +52,7 @@ export const userRegistration = async (req: Request, res: Response) => {
       refreshToken,
     });
   } catch (error) {
-    logger.error("User registration error occured", error);
+    logger.error("User registration error occurred", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -175,11 +176,44 @@ export const userRefreshToken = async (req: Request, res: Response) => {
       refreshToken: newRefreshToken,
     });
   } catch (error) {
-    logger.error("User refresh token error occured", error);
+    logger.error("User refresh token error occurred", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
-// logout
+
+// LOGOUT
+export const userLogout = async (req: Request, res: Response) => {
+  //* logging
+  logger.info("User logout endpoint hit...");
+  try {
+    //* validate request
+    const result = await logoutSchema.safeParseAsync(req.body);
+
+    if (!result.success) {
+      logger.warn("Validation error", result.error.message);
+
+      const errors = result.error.issues.map((i) => ({
+        field: i.path.join("."),
+        error: i.message,
+      }));
+
+      return res.status(400).json({ success: false, message: errors });
+    }
+
+    await RefreshTokenModel.deleteOne({ token: result.data.refreshToken });
+    logger.info("Refresh token deleted for logout");
+
+    return res
+      .status(200)
+      .json({ success: true, message: "User logged out successfully" });
+  } catch (error) {
+    logger.error("User logout error occurred", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
