@@ -5,6 +5,7 @@ import {
   deletePost,
   getPost,
   getPosts,
+  updatePost,
 } from "../controllers/post.controller.js";
 
 const postRouter = Router();
@@ -16,6 +17,7 @@ postRouter.use(authMiddleware);
 postRouter.get("/", getPosts);
 postRouter.get("/:id", getPost);
 postRouter.post("/", createPost);
+postRouter.patch("/:id", updatePost);
 postRouter.delete("/:id", deletePost);
 
 export default postRouter;

@@ -3,6 +3,7 @@ import z from "zod";
 
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type GetPosts = z.infer<typeof getPostsSchema>;
+export type UpdatePost = z.infer<typeof updatePostSchema>;
 export type PostId = z.infer<typeof postIdSchema>;
 
 export const createPostSchema = z.object({
@@ -20,3 +21,5 @@ export const postIdSchema = z.object({
     error: "Invalid post ID",
   }),
 });
+
+export const updatePostSchema = createPostSchema.partial();
