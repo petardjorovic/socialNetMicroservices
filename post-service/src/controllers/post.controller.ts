@@ -7,16 +7,19 @@ import {
   createPostSchema,
   getPostsSchema,
   postIdSchema,
+  updatePostSchema,
 } from "../utils/validationSchemas.js";
 
 //* CREATE POST
 export const createPost = async (req: Request, res: Response) => {
+  //* Logging
   logger.info("Create post endpoint hit...");
   try {
+    //* Validate request
     const result = createPostSchema.safeParse(req.body);
 
     if (!result.success) {
-      logger.warn("Validation failed", result.error.message);
+      logger.warn("Create post validation failed", result.error.message);
 
       const errors = result.error.issues.map((i) => ({
         field: i.path.join("."),
@@ -28,6 +31,7 @@ export const createPost = async (req: Request, res: Response) => {
 
     const { content, mediaIds } = result.data;
 
+    //* Query database
     const newlyCreatedPost = new PostModel({
       user: req.user!.userId, // znam da req.user postoji jer je prosao auth middleware
       content,
@@ -35,10 +39,11 @@ export const createPost = async (req: Request, res: Response) => {
     });
     await newlyCreatedPost.save();
 
-    // invalidate cached posts when there is a new post
+    //* Invalidate cache
     invalidatePostsCache().catch((cacheError) =>
       logger.warn("Post cache invalidation failed", cacheError),
     );
+
     logger.info("Post created successfully", {
       postId: newlyCreatedPost._id,
       userId: newlyCreatedPost.user,
@@ -46,7 +51,11 @@ export const createPost = async (req: Request, res: Response) => {
 
     return res
       .status(201)
-      .json({ success: true, message: "Post create successfully" });
+      .json({
+        success: true,
+        message: "Post create successfully",
+        post: newlyCreatedPost,
+      });
   } catch (error) {
     logger.error("Create post error occurred", error);
     res.status(500).json({
@@ -58,11 +67,13 @@ export const createPost = async (req: Request, res: Response) => {
 
 //* GET POSTS
 export const getPosts = async (req: Request, res: Response) => {
+  //* Logging
   logger.info("Get posts endpoint hit...");
   try {
+    //* Validate request
     const result = getPostsSchema.safeParse(req.query);
     if (!result.success) {
-      logger.warn("Validation failed", result.error.message);
+      logger.warn("Get posts validation failed", result.error.message);
 
       const errors = result.error.issues.map((i) => ({
         field: i.path.join("."),
@@ -81,6 +92,7 @@ export const getPosts = async (req: Request, res: Response) => {
     );
     const skip = (currentPage - 1) * limitPerPage;
 
+    //* Query redis cache
     const cacheKey = `posts:${currentPage}:${limitPerPage}`;
 
     let cachedPosts: string | null = null;
@@ -91,17 +103,22 @@ export const getPosts = async (req: Request, res: Response) => {
     }
 
     if (cachedPosts) {
-      return res.status(200).json(JSON.parse(cachedPosts));
+      return res
+        .status(200)
+        .json({ success: true, ...JSON.parse(cachedPosts) });
     }
 
-    const posts = await PostModel.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitPerPage);
+    //* Query database
+    const [posts, totalPosts] = await Promise.all([
+      PostModel.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitPerPage)
+        .lean(),
+      PostModel.countDocuments(),
+    ]);
 
-    const totalPosts = await PostModel.countDocuments();
-
-    const data = {
+    const responseData = {
       posts,
       currentPage,
       totalPages: Math.ceil(totalPosts / limitPerPage),
@@ -109,14 +126,18 @@ export const getPosts = async (req: Request, res: Response) => {
       limit: limitPerPage,
     };
 
-    // save your post in redis cache
-    try {
-      await redisClient.setex(cacheKey, 300, JSON.stringify(data));
-    } catch (cacheError) {
-      logger.warn("Posts cache write failed", cacheError);
-    }
+    //* Setting cache
+    redisClient
+      .setex(cacheKey, 300, JSON.stringify(responseData))
+      .catch((cacheError) =>
+        logger.warn("Posts cache write failed", cacheError),
+      );
 
-    return res.status(200).json(data);
+    logger.info("Get posts request completed", {
+      resultCount: posts.length,
+    });
+
+    return res.status(200).json({ success: true, ...responseData });
   } catch (error) {
     logger.error("Get post error occurred", error);
     res.status(500).json({
@@ -128,8 +149,10 @@ export const getPosts = async (req: Request, res: Response) => {
 
 //* GET SINGLE POST
 export const getPost = async (req: Request, res: Response) => {
+  //* Logging
   logger.info("Get post endpoint hit...");
   try {
+    //* Validate request
     const result = postIdSchema.safeParse(req.params);
     if (!result.success) {
       logger.warn("Validation failed", result.error.message);
@@ -144,6 +167,7 @@ export const getPost = async (req: Request, res: Response) => {
 
     const { id: postId } = result.data;
 
+    //* Query redis cache
     const cachedKey = `post:${postId}`;
 
     let cachedPost: string | null = null;
@@ -154,9 +178,12 @@ export const getPost = async (req: Request, res: Response) => {
     }
 
     if (cachedPost) {
-      return res.status(200).json(JSON.parse(cachedPost));
+      return res
+        .status(200)
+        .json({ success: true, post: JSON.parse(cachedPost) });
     }
 
+    //* Query database
     const post = await PostModel.findById(postId);
 
     if (!post) {
@@ -165,13 +192,14 @@ export const getPost = async (req: Request, res: Response) => {
         .json({ success: false, message: "Post not found" });
     }
 
-    try {
-      await redisClient.setex(cachedKey, 3600, JSON.stringify(post.toObject()));
-    } catch (cacheError) {
-      logger.error("Post cache write failed", cacheError);
-    }
+    //* Setting cache
+    redisClient
+      .setex(cachedKey, 3600, JSON.stringify(post.toObject()))
+      .catch((cacheError) =>
+        logger.error("Post cache write failed", cacheError),
+      );
 
-    return res.status(200).json({ post: post.toObject() });
+    return res.status(200).json({ success: true, post: post.toObject() });
   } catch (error) {
     logger.error("Get post error occurred", error);
     res.status(500).json({
@@ -181,26 +209,89 @@ export const getPost = async (req: Request, res: Response) => {
   }
 };
 
-//TODO UPDATE POST
-// export const updatePost = async (req: Request, res: Response) => {
-//   logger.info("Update post endpoint hit...");
-//   try {
-//   } catch (error) {
-//     logger.error("Update post error occurred", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//     });
-//   }
-// };
+//* UPDATE POST
+export const updatePost = async (req: Request, res: Response) => {
+  //* Logging
+  logger.info("Update post endpoint hit...");
+  try {
+    //* Validate request
+    const bodyResult = updatePostSchema.safeParse(req.body);
+    const paramsResult = postIdSchema.safeParse(req.params);
+    if (!bodyResult.success || !paramsResult.success) {
+      const errors = [
+        ...(bodyResult.success
+          ? []
+          : bodyResult.error.issues.map((i) => ({
+              field: i.path.join("."),
+              message: i.message,
+            }))),
+        ...(paramsResult.success
+          ? []
+          : paramsResult.error.issues.map((i) => ({
+              field: i.path.join("."),
+              message: i.message,
+            }))),
+      ];
+
+      logger.warn("Validation failed", errors);
+
+      return res.status(400).json({ success: false, message: errors });
+    }
+
+    const { content, mediaIds } = bodyResult.data;
+    const { id: postId } = paramsResult.data;
+
+    const updateData: Record<string, any> = {};
+    if (content !== undefined) updateData.content = content;
+    if (mediaIds !== undefined) updateData.mediaIds = mediaIds;
+
+    //* Query database
+    const updatedPost = await PostModel.findOneAndUpdate(
+      { _id: postId, user: req.user!.userId },
+      updateData,
+      { new: true },
+    ).lean();
+
+    if (!updatedPost) {
+      logger.error("Post not found for updating");
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    //* Invalidate cache
+    invalidatePostsCache(postId).catch((cacheError) =>
+      logger.warn("Post cache invalidation failed", cacheError),
+    );
+
+    logger.info(`Post updated successfully`, {
+      postId,
+      userId: req.user!.userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Post successfully updated",
+      post: updatedPost,
+    });
+  } catch (error) {
+    logger.error("Update post error occurred", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 //* DELETE POST
 export const deletePost = async (req: Request, res: Response) => {
+  //* Logging
   logger.info("Delete post endpoint hit...");
   try {
+    //* Validate request
     const result = postIdSchema.safeParse(req.params);
     if (!result.success) {
-      logger.warn("Validation failed", result.error.message);
+      logger.warn("Delete post validation failed", result.error.message);
 
       const errors = result.error.issues.map((i) => ({
         field: i.path.join("."),
@@ -212,25 +303,33 @@ export const deletePost = async (req: Request, res: Response) => {
 
     const { id: postId } = result.data;
 
+    //* Query database
     const deletedPost = await PostModel.findOneAndDelete({
       _id: postId,
       user: req.user!.userId,
     });
 
     if (!deletedPost) {
-      logger.error("Post for deleting not found");
+      logger.error("Post not found for deleting");
       return res
         .status(404)
         .json({ success: false, message: "Post not found" });
     }
 
+    //* Invalidate cache (non blocking)
     invalidatePostsCache(postId).catch((cacheError) =>
       logger.warn("Post cache invalidation failed", cacheError),
     );
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Post successfully deleted" });
+    logger.info(`Post deleted successfully`, {
+      postId,
+      userId: req.user!.userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Post successfully deleted",
+    });
   } catch (error) {
     logger.error("Delete post error occurred", error);
     res.status(500).json({
