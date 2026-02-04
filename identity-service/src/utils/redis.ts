@@ -1,0 +1,15 @@
+import { Redis } from "ioredis";
+import { REDIS_URL } from "./env.js";
+import logger from "./logger.js";
+
+const redisClient = new Redis(REDIS_URL);
+
+redisClient.on("error", (err) => {
+  logger.error("Redis connection error", err);
+});
+
+redisClient.on("connect", () => {
+  logger.info("Connected to Redis");
+});
+
+export default redisClient;

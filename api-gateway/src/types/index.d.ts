@@ -5,6 +5,7 @@ declare global {
         userId: string;
         username: string;
       };
+      requestId?: string;
     }
   }
 }

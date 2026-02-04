@@ -11,25 +11,27 @@ import errorHandler from "./middlewares/errorHandler.js";
 import router from "./routes/identity-servise.route.js";
 import configurationCors from "./middlewares/configurationCors.js";
 import { MONGO_URI, PORT, REDIS_URL } from "./utils/env.js";
+import redisClient from "./utils/redis.js";
 
 const app = express();
 // app.set("trust proxy", 1)   //* ovo treba dodati kad odradis apiGateway
 
-// connect to mongoDB
-mongoose
-  .connect(MONGO_URI)
-  .then(() => logger.info("Connected to MongoDB"))
-  .catch((error) => logger.error("MongoDB connection error", error));
+let server: ReturnType<typeof app.listen> | undefined;
 
-const redisClient = new Redis(REDIS_URL);
+const start = async () => {
+  try {
+    await mongoose.connect(MONGO_URI);
+    logger.info("Connected to MongoDB");
 
-redisClient.on("error", (err) => {
-  logger.error("Redis connection error", err);
-});
+    server = app.listen(PORT, () => {
+      logger.info(`Identity service is running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error("MongoDB connection error", error);
+  }
+};
 
-redisClient.on("connect", () => {
-  logger.info("Connected to Redis");
-});
+void start();
 
 // middlewares
 app.use(helmet());
@@ -105,17 +107,32 @@ app.use("/api/auth", router);
 // Error Handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`Identity service is running on port ${PORT}`);
+const gracefulShutdown = async (signal: string, exitCode = 0) => {
+  logger.info(`${signal} received, shutting down gracefully`);
+  try {
+    await redisClient.quit();
+    await mongoose.connection.close();
+  } catch (error) {
+    logger.error("Shutdown error", error);
+    exitCode = 1;
+  }
+
+  if (server) {
+    server.close(() => process.exit(exitCode));
+  } else {
+    process.exit(exitCode);
+  }
+};
+
+process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
+
+process.on("unhandledRejection", (reason) => {
+  logger.error(`Unhandled Rejection: ${reason}`);
+  void gracefulShutdown("unhandledRejection", 1);
 });
 
-// unhandled promise rejection
-process.on("unhandledRejection", (reason, promise) => {
-  logger.error(`Unhandled rejection at ${promise}, reason: ${reason}`);
-  // Graceful shutdown
-  setTimeout(() => {
-    Promise.all([mongoose.connection.close(), redisClient.quit()]).finally(() =>
-      process.exit(1),
-    );
-  }, 1000);
+process.on("uncaughtException", (err) => {
+  logger.error(`Uncaught Exception: ${err}`);
+  void gracefulShutdown("uncaughtException", 1);
 });

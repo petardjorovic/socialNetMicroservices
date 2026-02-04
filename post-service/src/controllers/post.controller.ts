@@ -49,13 +49,11 @@ export const createPost = async (req: Request, res: Response) => {
       userId: newlyCreatedPost.user,
     });
 
-    return res
-      .status(201)
-      .json({
-        success: true,
-        message: "Post create successfully",
-        post: newlyCreatedPost,
-      });
+    return res.status(201).json({
+      success: true,
+      message: "Post create successfully",
+      post: newlyCreatedPost,
+    });
   } catch (error) {
     logger.error("Create post error occurred", error);
     res.status(500).json({
