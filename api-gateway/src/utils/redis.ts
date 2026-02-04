@@ -8,8 +8,8 @@ redisClient.on("error", (err) => {
   logger.error("Redis connection error", err);
 });
 
-redisClient.on("connect", () => {
-  logger.info("Connected to Redis");
+redisClient.on("ready", () => {
+  logger.info("Redis client ready");
 });
 
 export default redisClient;

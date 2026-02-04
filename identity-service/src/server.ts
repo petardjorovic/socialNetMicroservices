@@ -3,15 +3,14 @@ import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import helmet from "helmet";
 import { RedisReply, RedisStore } from "rate-limit-redis";
-import { Redis } from "ioredis";
 import { RateLimiterRedis } from "rate-limiter-flexible";
 import { rateLimit } from "express-rate-limit";
 import logger from "./utils/logger.js";
-import errorHandler from "./middlewares/errorHandler.js";
-import router from "./routes/identity-servise.route.js";
-import configurationCors from "./middlewares/configurationCors.js";
-import { MONGO_URI, PORT, REDIS_URL } from "./utils/env.js";
+import { MONGO_URI, PORT } from "./utils/env.js";
 import redisClient from "./utils/redis.js";
+import router from "./routes/identity-servise.route.js";
+import errorHandler from "./middlewares/errorHandler.js";
+import configurationCors from "./middlewares/configurationCors.js";
 
 const app = express();
 // app.set("trust proxy", 1)   //* ovo treba dodati kad odradis apiGateway
@@ -28,6 +27,7 @@ const start = async () => {
     });
   } catch (error) {
     logger.error("MongoDB connection error", error);
+    process.exit(1);
   }
 };
 
