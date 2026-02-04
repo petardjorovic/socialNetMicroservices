@@ -1,11 +1,16 @@
 import "dotenv/config";
 import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
-import { Redis } from "ioredis";
 import rateLimit from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { type RedisReply } from "rate-limit-redis";
 import configurationCors from "./middlewares/configurationCors.js";
+import {
+  IncomingMessage,
+  OutgoingHttpHeaders,
+  RequestOptions,
+} from "node:http";
+import proxy, { ProxyOptions } from "express-http-proxy";
 import {
   IDENTITY_SERVICE_URL,
   PORT,
@@ -13,33 +18,32 @@ import {
   REDIS_URL,
 } from "./utils/env.js";
 import logger from "./utils/logger.js";
-import proxy, { ProxyOptions } from "express-http-proxy";
 import errorHandler from "./middlewares/errorHandler.js";
-import {
-  IncomingMessage,
-  OutgoingHttpHeaders,
-  RequestOptions,
-} from "node:http";
-import crypto from "crypto";
 import authMiddleware from "./middlewares/authMiddleware.js";
+import requestIdMiddleware from "./middlewares/requestIdMiddleware.js";
+import redisClient from "./utils/redis.js";
 
 const app = express();
 //TODO app.set("trust proxy", 1); // ako budem iza proxija
 
-const redisClient = new Redis(REDIS_URL);
+let server: ReturnType<typeof app.listen> | undefined;
 
-redisClient.on("error", (err) => {
-  logger.error("Redis connection error", err);
-});
+const start = () => {
+  server = app.listen(PORT, () => {
+    logger.info(`API Gateway is running on port ${PORT}`);
+    logger.info(`Identity service is running on url ${IDENTITY_SERVICE_URL}`);
+    logger.info(`Post service is running on url ${POST_SERVICE_URL}`);
+    logger.info(`Redis Url ${REDIS_URL} `);
+  });
+};
 
-redisClient.on("connect", () => {
-  logger.info("Connected to Redis");
-});
+start();
 
 // middlewares
 app.use(helmet());
 app.use(configurationCors());
 app.use(express.json());
+app.use(requestIdMiddleware);
 
 // rate limiting
 const rateLimiter = rateLimit({
@@ -72,7 +76,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     const duration = Date.now() - start;
 
     logger.info(
-      `method: ${req.method}, url: ${req.originalUrl}, ip: ${req.ip}, status: ${res.statusCode}, durationMs: ${duration}`,
+      `requestId: ${req.requestId}, method: ${req.method}, url: ${req.originalUrl}, ip: ${req.ip}, status: ${res.statusCode}, durationMs: ${duration}`,
     );
   });
 
@@ -103,7 +107,7 @@ app.use(
       srcReq: Request,
     ) => {
       proxyReqOpts.headers["Content-Type"] = "application/json";
-      //TODO   const requestId = srcReq.headers["x-request-id"] ?? crypto.randomUUID();
+      proxyReqOpts.headers["x-request-id"] = srcReq.requestId;
       return proxyReqOpts;
     },
     userResDecorator: (
@@ -134,7 +138,7 @@ app.use(
     ) => {
       proxyReqOpts.headers["Content-Type"] = "application/json";
       proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId;
-      //TODO   const requestId = srcReq.headers["x-request-id"] ?? crypto.randomUUID();
+      proxyReqOpts.headers["x-request-id"] = srcReq.requestId;
       return proxyReqOpts;
     },
     userResDecorator: (
@@ -153,30 +157,32 @@ app.use(
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`API Gateway is running on port ${PORT}`);
-  logger.info(`Identity service is running on url ${IDENTITY_SERVICE_URL}`);
-  logger.info(`Post service is running on url ${POST_SERVICE_URL}`);
-  logger.info(`Redis Url ${REDIS_URL} `);
-});
-
-const gracefulShutdown = async (signal: string) => {
+const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);
-  await redisClient.quit();
-  //   await mongoose.connection.close();
-  process.exit(0);
+  try {
+    await redisClient.quit();
+    // await mongoose.connection.close();
+  } catch (error) {
+    logger.error("Shutdown error", error);
+    exitCode = 1;
+  }
+
+  if (server) {
+    server.close(() => process.exit(exitCode));
+  } else {
+    process.exit(exitCode);
+  }
 };
 
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => void gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
 
-// Optionally handle uncaught errors
 process.on("unhandledRejection", (reason) => {
   logger.error(`Unhandled Rejection: ${reason}`);
-  gracefulShutdown("unhandledRejection");
+  void gracefulShutdown("unhandledRejection", 1);
 });
 
 process.on("uncaughtException", (err) => {
   logger.error(`Uncaught Exception: ${err}`);
-  gracefulShutdown("uncaughtException");
+  void gracefulShutdown("uncaughtException", 1);
 });
