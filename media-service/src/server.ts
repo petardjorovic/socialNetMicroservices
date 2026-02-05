@@ -30,8 +30,6 @@ const start = async () => {
   }
 };
 
-void start();
-
 // middlewares
 app.use(helmet());
 app.use(cors());
@@ -73,6 +71,9 @@ app.use((req, res, next) => {
 app.use("/api/media", mediaRouter);
 
 app.use(errorHandler);
+
+// Start server after all middleware is configured
+void start();
 
 const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);
