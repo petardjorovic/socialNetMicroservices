@@ -13,7 +13,7 @@ import errorHandler from "./middlewares/errorHandler.js";
 // import "./utils/redis.js";
 
 const app = express();
-// app.set("trust proxy", 1);
+app.set("trust proxy", 1);
 
 let server: ReturnType<typeof app.listen> | undefined;
 
@@ -30,8 +30,6 @@ const start = async () => {
     process.exit(1);
   }
 };
-
-void start();
 
 // middlewares
 app.use(helmet());
@@ -74,6 +72,8 @@ app.use(limiter);
 app.use("/api/posts", postRouter);
 
 app.use(errorHandler);
+
+void start();
 
 const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);
