@@ -12,7 +12,7 @@ import errorHandler from "./middlewares/errorHandler.js";
 import mediaRouter from "./routes/index.js";
 
 const app = express();
-// app.set("trust proxy", 1);
+app.set("trust proxy", 1);
 
 let server: ReturnType<typeof app.listen> | undefined;
 

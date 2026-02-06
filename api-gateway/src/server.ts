@@ -13,6 +13,7 @@ import {
 import proxy, { ProxyOptions } from "express-http-proxy";
 import {
   IDENTITY_SERVICE_URL,
+  MEDIA_SERVICE_URL,
   PORT,
   POST_SERVICE_URL,
   REDIS_URL,
@@ -33,11 +34,10 @@ const start = () => {
     logger.info(`API Gateway is running on port ${PORT}`);
     logger.info(`Identity service is running on url ${IDENTITY_SERVICE_URL}`);
     logger.info(`Post service is running on url ${POST_SERVICE_URL}`);
+    logger.info(`Media service is running on url ${MEDIA_SERVICE_URL}`);
     logger.info(`Redis Url ${REDIS_URL} `);
   });
 };
-
-start();
 
 // middlewares
 app.use(helmet());
@@ -155,7 +155,43 @@ app.use(
   }),
 );
 
+// setting up proxy for our media service
+app.use(
+  "/v1/media",
+  authMiddleware,
+  proxy(MEDIA_SERVICE_URL, {
+    ...proxyOptions,
+    proxyReqOptDecorator: (
+      proxyReqOpts: Omit<RequestOptions, "headers"> & {
+        headers: OutgoingHttpHeaders;
+      },
+      srcReq: Request,
+    ) => {
+      proxyReqOpts.headers["x-request-id"] = srcReq.requestId;
+      proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId;
+      // if (!srcReq.headers["content-type"]?.startsWith("multipart/form-data")) {
+      //   proxyReqOpts.headers["Content-Type"] = "multipart/form-data";
+      // }  //* ne treba ovo jer express-http-proxy sam postavlja content-type na multipart/form-data kad detektuje da je body stream
+      return proxyReqOpts;
+    },
+    userResDecorator: (
+      proxyRes: IncomingMessage,
+      proxyResData: any,
+      userReq: Request,
+      userRes: Response,
+    ) => {
+      logger.info(
+        `Response received from Media service: ${proxyRes.statusCode}`,
+      );
+      return proxyResData;
+    },
+    parseReqBody: false, // important for file uploads
+  }),
+);
+
 app.use(errorHandler);
+
+void start();
 
 const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);

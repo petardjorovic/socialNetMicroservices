@@ -13,7 +13,7 @@ import errorHandler from "./middlewares/errorHandler.js";
 import configurationCors from "./middlewares/configurationCors.js";
 
 const app = express();
-// app.set("trust proxy", 1)   //* ovo treba dodati kad odradis apiGateway
+app.set("trust proxy", 1); //* ovo treba dodati kad odradis apiGateway
 
 let server: ReturnType<typeof app.listen> | undefined;
 
@@ -30,8 +30,6 @@ const start = async () => {
     process.exit(1);
   }
 };
-
-void start();
 
 // middlewares
 app.use(helmet());
@@ -106,6 +104,8 @@ app.use("/api/auth", router);
 
 // Error Handler
 app.use(errorHandler);
+
+void start();
 
 const gracefulShutdown = async (signal: string, exitCode = 0) => {
   logger.info(`${signal} received, shutting down gracefully`);
