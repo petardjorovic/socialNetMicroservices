@@ -18,7 +18,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     NODE_ENV === "development" ? err.message : "Internal server error";
   const statusCode = err.status || err.statusCode || 500;
 
-  if (err instanceof multer.MulterError) multerErrorHandler(res, err);
+  if (err instanceof multer.MulterError) return multerErrorHandler(res, err);
 
   return res.status(statusCode).json({ success: false, message });
 };
