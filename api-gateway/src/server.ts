@@ -169,9 +169,9 @@ app.use(
     ) => {
       proxyReqOpts.headers["x-request-id"] = srcReq.requestId;
       proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId;
-      if (!srcReq.headers["content-type"]?.startsWith("multipart/form-data")) {
-        proxyReqOpts.headers["Content-Type"] = "multipart/form-data";
-      }
+      // if (!srcReq.headers["content-type"]?.startsWith("multipart/form-data")) {
+      //   proxyReqOpts.headers["Content-Type"] = "multipart/form-data";
+      // }  //* ne treba ovo jer express-http-proxy sam postavlja content-type na multipart/form-data kad detektuje da je body stream
       return proxyReqOpts;
     },
     userResDecorator: (
