@@ -10,6 +10,7 @@ import logger from "./utils/logger.js";
 import redisClient from "./utils/redis.js";
 import postRouter from "./routes/index.js";
 import errorHandler from "./middlewares/errorHandler.js";
+import { connectToRabbitMQ } from "./utils/rabbitmq.js";
 // import "./utils/redis.js";
 
 const app = express();
@@ -21,6 +22,7 @@ const start = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     logger.info("Connected to MongoDB");
+    await connectToRabbitMQ();
 
     server = app.listen(PORT, () => {
       logger.info(`Post service is running on port ${PORT}`);

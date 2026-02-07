@@ -1,20 +1,10 @@
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { UploadApiResponse } from "cloudinary";
 import crypto from "crypto";
 import "multer";
-import {
-  CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET,
-  CLOUDINARY_CLOUD_NAME,
-} from "./env.js";
+import cloudinary from "../config/cloudinaryConfig.js";
+import logger from "./logger.js";
 
-cloudinary.config({
-  cloud_name: CLOUDINARY_CLOUD_NAME,
-  api_key: CLOUDINARY_API_KEY,
-  api_secret: CLOUDINARY_API_SECRET,
-  secure: true,
-});
-
-const uploadMediaToCloudinary = (
+export const uploadMediaToCloudinary = (
   file: Express.Multer.File,
 ): Promise<UploadApiResponse> => {
   return new Promise<UploadApiResponse>((resolve, reject) => {
@@ -45,4 +35,30 @@ const uploadMediaToCloudinary = (
   });
 };
 
-export default uploadMediaToCloudinary;
+export const deleteMediaFromCloudinary = async (
+  publicId: string,
+  resourceType: "image" | "video",
+) => {
+  try {
+    const res = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
+
+    if (res.result !== "ok" && res.result !== "not found") {
+      throw new Error(`Unexpected Cloudinary delete result: ${res.result}`);
+    }
+    logger.info("Media deleted from Cloudinary", {
+      publicId,
+      resourceType,
+      result: res.result,
+    });
+    return res;
+  } catch (error) {
+    logger.error("Error deleting media from Cloudinary", {
+      publicId,
+      resourceType,
+      error,
+    });
+    throw error;
+  }
+};
