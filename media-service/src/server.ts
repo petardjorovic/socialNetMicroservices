@@ -7,9 +7,11 @@ import rateLimit from "express-rate-limit";
 import RedisStore, { type RedisReply } from "rate-limit-redis";
 import { MONGO_URI, PORT } from "./utils/env.js";
 import logger from "./utils/logger.js";
-import redisClient from "./utils/redis.js";
+import redisClient from "./config/redis.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import mediaRouter from "./routes/index.js";
+import { connectToRabbitMQ, consumeEvent } from "./utils/rabbitmq.js";
+import { handlePostDelete } from "./eventHandler/media-event.handler.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -20,6 +22,11 @@ const start = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     logger.info("Connected to MongoDB");
+
+    // consume all events
+    await connectToRabbitMQ();
+
+    await consumeEvent("post.deleted", handlePostDelete);
 
     server = app.listen(PORT, () => {
       logger.info(`Media service is running on port ${PORT}`);

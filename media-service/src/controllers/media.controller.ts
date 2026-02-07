@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import logger from "../utils/logger.js";
-import uploadMediaToCloudinary from "../utils/cloudinaryConfig.js";
+import { uploadMediaToCloudinary } from "../utils/cloudinaryUtils.js";
 import MediaModel from "../models/media.model.js";
 
 export const uploadMedia = async (req: Request, res: Response) => {
@@ -45,6 +45,21 @@ export const uploadMedia = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error("Uplaod media error occurred", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getMedias = async (req: Request, res: Response) => {
+  logger.info("Get medias request hit...");
+  try {
+    const medias = await MediaModel.find();
+
+    return res.status(200).json({ success: true, medias });
+  } catch (error) {
+    logger.error("Get medias error occurred", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",

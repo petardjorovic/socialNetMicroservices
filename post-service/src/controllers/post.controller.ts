@@ -9,6 +9,7 @@ import {
   postIdSchema,
   updatePostSchema,
 } from "../utils/validationSchemas.js";
+import { publishEvent } from "../utils/rabbitmq.js";
 
 //* CREATE POST
 export const createPost = async (req: Request, res: Response) => {
@@ -313,6 +314,13 @@ export const deletePost = async (req: Request, res: Response) => {
         .status(404)
         .json({ success: false, message: "Post not found" });
     }
+
+    //* Publish post.delete message to RabbitMQ
+    await publishEvent("post.deleted", {
+      postId: deletedPost._id,
+      userId: req.user!.userId,
+      mediaIds: deletedPost.mediaIds,
+    });
 
     //* Invalidate cache (non blocking)
     invalidatePostsCache(postId).catch((cacheError) =>
