@@ -10,7 +10,7 @@ import logger from "./utils/logger.js";
 import redisClient from "./utils/redis.js";
 import postRouter from "./routes/index.js";
 import errorHandler from "./middlewares/errorHandler.js";
-import { connectToRabbitMQ } from "./utils/rabbitmq.js";
+import rabbitMQService from "./config/RabbitMQService.js";
 // import "./utils/redis.js";
 
 const app = express();
@@ -22,13 +22,13 @@ const start = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     logger.info("Connected to MongoDB");
-    await connectToRabbitMQ();
+    await rabbitMQService.connect();
 
     server = app.listen(PORT, () => {
       logger.info(`Post service is running on port ${PORT}`);
     });
   } catch (err) {
-    logger.error("MongoDB connection error", err);
+    logger.error("Failed to start Post service (DB or RabbitMQ issue)", err);
     process.exit(1);
   }
 };
@@ -82,6 +82,7 @@ const gracefulShutdown = async (signal: string, exitCode = 0) => {
   try {
     await redisClient.quit();
     await mongoose.connection.close();
+    await rabbitMQService.close();
   } catch (error) {
     logger.error("Shutdown error", error);
     exitCode = 1;

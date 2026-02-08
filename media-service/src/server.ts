@@ -10,8 +10,8 @@ import logger from "./utils/logger.js";
 import redisClient from "./config/redis.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import mediaRouter from "./routes/index.js";
-import { connectToRabbitMQ, consumeEvent } from "./utils/rabbitmq.js";
-import { handlePostDelete } from "./eventHandler/media-event.handler.js";
+import rabbitMQService from "./config/RabbitMQService.js";
+import { registerConsumers } from "./events/subscribers.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -23,10 +23,8 @@ const start = async () => {
     await mongoose.connect(MONGO_URI);
     logger.info("Connected to MongoDB");
 
-    // consume all events
-    await connectToRabbitMQ();
-
-    await consumeEvent("post.deleted", handlePostDelete);
+    await rabbitMQService.connect();
+    await registerConsumers();
 
     server = app.listen(PORT, () => {
       logger.info(`Media service is running on port ${PORT}`);
@@ -87,6 +85,7 @@ const gracefulShutdown = async (signal: string, exitCode = 0) => {
   try {
     await mongoose.connection.close();
     await redisClient.quit();
+    await rabbitMQService.close();
   } catch (error) {
     logger.error("Shutdown error", error);
     exitCode = 1;
