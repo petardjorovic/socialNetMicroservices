@@ -10,6 +10,7 @@ import {
   updatePostSchema,
 } from "../utils/validationSchemas.js";
 import { publishEvent } from "../utils/rabbitmq.js";
+import rabbitMQService from "../config/RabbitMQService.js";
 
 //* CREATE POST
 export const createPost = async (req: Request, res: Response) => {
@@ -316,11 +317,20 @@ export const deletePost = async (req: Request, res: Response) => {
     }
 
     //* Publish post.delete message to RabbitMQ
-    await publishEvent("post.deleted", {
-      postId: deletedPost._id,
-      userId: req.user!.userId,
-      mediaIds: deletedPost.mediaIds,
-    });
+    // await rabbitMQService.publish("post.delete", {
+    //   postId: deletedPost._id,
+    //   userId: req.user!.userId,
+    //   mediaIds: deletedPost.mediaIds,
+    // });
+    rabbitMQService
+      .publish("post.delete", {
+        postId: deletedPost._id,
+        userId: req.user!.userId,
+        mediaIds: deletedPost.mediaIds,
+      })
+      .catch((err) => {
+        logger.error("Failed to publish post.deleted event", err);
+      });
 
     //* Invalidate cache (non blocking)
     invalidatePostsCache(postId).catch((cacheError) =>
