@@ -4,6 +4,11 @@ import logger from "../utils/logger.js";
 
 const EXCHANGE_NAME = "my_network_events";
 
+interface ConsumerConfig<T> {
+  routingKey: string;
+  callback: (content: T) => Promise<void>;
+}
+
 class RabbitMQService {
   private static instance: RabbitMQService;
   private connection: ChannelModel | null = null;
@@ -11,6 +16,7 @@ class RabbitMQService {
   private isConnecting: boolean = false;
   private isShuttingDown: boolean = false;
   private pendingMessages: number = 0;
+  private consumers: ConsumerConfig<any>[] = [];
 
   private constructor() {}
 
@@ -25,10 +31,15 @@ class RabbitMQService {
     if (this.channel) return this.channel;
     if (this.isConnecting) {
       // wait dok se konekcija ne završi
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          clearInterval(interval);
+          reject(new Error("Timed out waiting for RabbitMQ connection"));
+        }, 30_000);
         const interval = setInterval(() => {
           if (this.channel) {
             clearInterval(interval);
+            clearTimeout(timeout);
             resolve(this.channel);
           }
         }, 50);
@@ -60,6 +71,10 @@ class RabbitMQService {
       });
 
       logger.info("Connected to RabbitMQ");
+
+      // Replay stored consumers after channel is created
+      await this.replayConsumers();
+
       this.isConnecting = false;
       return this.channel;
     } catch (error) {
@@ -87,9 +102,27 @@ class RabbitMQService {
     routingKey: string,
     callback: (content: T) => Promise<void>,
   ) {
-    const ch = await this.connect();
+    // Store consumer config for replay on reconnection
+    const consumerIndex = this.consumers.findIndex(
+      (c) => c.routingKey === routingKey,
+    );
 
-    const queueName = `post_service_${routingKey}`;
+    if (consumerIndex === -1) {
+      this.consumers.push({ routingKey, callback });
+    } else {
+      this.consumers[consumerIndex] = { routingKey, callback };
+    }
+
+    const ch = await this.connect();
+    await this.registerConsumer(ch, routingKey, callback);
+  }
+
+  private async registerConsumer<T>(
+    ch: Channel,
+    routingKey: string,
+    callback: (content: T) => Promise<void>,
+  ): Promise<void> {
+    const queueName = `media_service_${routingKey}`;
 
     const q = await ch.assertQueue(queueName, { durable: true });
     await ch.bindQueue(q.queue, EXCHANGE_NAME, routingKey);
@@ -112,10 +145,47 @@ class RabbitMQService {
     logger.info(`Subscribed to event: ${routingKey}`, { queue: q.queue });
   }
 
+  private async replayConsumers(): Promise<void> {
+    if (!this.channel) {
+      logger.warn("Cannot replay consumers: channel is null");
+      return;
+    }
+
+    if (this.consumers.length === 0) {
+      logger.debug("No consumers to replay");
+      return;
+    }
+
+    for (const consumer of this.consumers) {
+      try {
+        await this.registerConsumer(
+          this.channel,
+          consumer.routingKey,
+          consumer.callback,
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to replay consumer for ${consumer.routingKey}`,
+          error,
+        );
+      }
+    }
+
+    logger.info(`Replayed ${this.consumers.length} consumer(s)`);
+  }
+
   public async close(): Promise<void> {
     this.isShuttingDown = true;
     try {
+      const maxWait = 30_000;
+      const start = Date.now();
       while (this.pendingMessages > 0) {
+        if (Date.now() - start > maxWait) {
+          logger.warn(
+            `Force closing with ${this.pendingMessages} pending messages`,
+          );
+          break;
+        }
         logger.info(`Waiting for ${this.pendingMessages} pending messages...`);
         await new Promise((r) => setTimeout(r, 100)); // check na svakih 100ms
       }

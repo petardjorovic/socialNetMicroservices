@@ -26,10 +26,15 @@ class RabbitMQService {
     if (this.channel) return this.channel;
     if (this.isConnecting) {
       // wait dok se konekcija ne završi
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          clearInterval(interval);
+          reject(new Error("Timed out waiting for RabbitMQ connection"));
+        }, 30_000);
         const interval = setInterval(() => {
           if (this.channel) {
             clearInterval(interval);
+            clearTimeout(timeout);
             resolve(this.channel);
           }
         }, 50);

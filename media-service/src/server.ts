@@ -10,8 +10,6 @@ import logger from "./utils/logger.js";
 import redisClient from "./config/redis.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import mediaRouter from "./routes/index.js";
-// import { connectToRabbitMQ, consumeEvent } from "./utils/rabbitmq.js";
-// import { handlePostDelete } from "./events/media-event.handler.js";
 import rabbitMQService from "./config/RabbitMQService.js";
 import { registerConsumers } from "./events/subscribers.js";
 
@@ -87,6 +85,7 @@ const gracefulShutdown = async (signal: string, exitCode = 0) => {
   try {
     await mongoose.connection.close();
     await redisClient.quit();
+    await rabbitMQService.close();
   } catch (error) {
     logger.error("Shutdown error", error);
     exitCode = 1;

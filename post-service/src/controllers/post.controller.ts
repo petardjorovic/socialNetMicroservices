@@ -9,7 +9,6 @@ import {
   postIdSchema,
   updatePostSchema,
 } from "../utils/validationSchemas.js";
-import { publishEvent } from "../utils/rabbitmq.js";
 import rabbitMQService from "../config/RabbitMQService.js";
 
 //* CREATE POST
@@ -317,11 +316,6 @@ export const deletePost = async (req: Request, res: Response) => {
     }
 
     //* Publish post.delete message to RabbitMQ
-    // await rabbitMQService.publish("post.delete", {
-    //   postId: deletedPost._id,
-    //   userId: req.user!.userId,
-    //   mediaIds: deletedPost.mediaIds,
-    // });
     rabbitMQService
       .publish("post.delete", {
         postId: deletedPost._id,
