@@ -133,10 +133,33 @@ class RabbitMQService {
       try {
         const content = JSON.parse(msg.content.toString());
         await callback(content);
-        ch.ack(msg);
+        try {
+          ch.ack(msg);
+        } catch {
+          logger.warn("Failed to ack (channel likely closed)");
+        }
       } catch (error) {
         logger.error("Failed processing message", error);
-        ch.nack(msg, false, true); // ponovo stavlja u queue
+        const deaths = msg.properties.headers?.["x-death"] as
+          | Array<any>
+          | undefined;
+        const retryCount = deaths?.[0]?.count ?? 0;
+        if (retryCount >= 5) {
+          logger.error(`Message exceeded max retries, discarding`, {
+            routingKey,
+          });
+          try {
+            ch.nack(msg, false, false); // reject without requeue
+          } catch {
+            logger.warn("Failed to nack (channel likely closed)");
+          }
+        } else {
+          try {
+            ch.nack(msg, false, true);
+          } catch {
+            logger.warn("Failed to nack (channel likely closed)");
+          }
+        }
       } finally {
         this.pendingMessages--;
       }
