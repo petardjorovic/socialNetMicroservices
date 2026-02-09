@@ -4,6 +4,11 @@ import logger from "../utils/logger.js";
 
 const EXCHANGE_NAME = "my_network_events";
 
+interface ConsumerConfig<T> {
+  routingKey: string;
+  callback: (content: T) => Promise<void>;
+}
+
 class RabbitMQService {
   private static instance: RabbitMQService;
   private connection: ChannelModel | null = null;
@@ -11,6 +16,7 @@ class RabbitMQService {
   private isConnecting: boolean = false;
   private isShuttingDown: boolean = false;
   private pendingMessages: number = 0;
+  private consumers: ConsumerConfig<any>[] = [];
 
   // Singleton pattern
   public static getInstance() {
@@ -66,6 +72,10 @@ class RabbitMQService {
       });
 
       logger.info("Connected to RabbitMQ");
+
+      // Replay stored consumers after channel is created
+      await this.replayConsumers();
+
       this.isConnecting = false;
       return this.channel;
     } catch (error) {
@@ -93,8 +103,26 @@ class RabbitMQService {
     routingKey: string,
     callback: (content: T) => Promise<void>,
   ) {
-    const ch = await this.connect();
+    // Store consumer config for replay on reconnection
+    const consumerIndex = this.consumers.findIndex(
+      (c) => c.routingKey === routingKey,
+    );
 
+    if (consumerIndex === -1) {
+      this.consumers.push({ routingKey, callback });
+    } else {
+      this.consumers[consumerIndex] = { routingKey, callback };
+    }
+
+    const ch = await this.connect();
+    await this.registerConsumer(ch, routingKey, callback);
+  }
+
+  private async registerConsumer<T>(
+    ch: Channel,
+    routingKey: string,
+    callback: (content: T) => Promise<void>,
+  ): Promise<void> {
     const queueName = `post_service_${routingKey}`;
 
     const q = await ch.assertQueue(queueName, { durable: true });
@@ -106,10 +134,38 @@ class RabbitMQService {
       try {
         const content = JSON.parse(msg.content.toString());
         await callback(content);
-        ch.ack(msg);
+        try {
+          ch.ack(msg);
+        } catch {
+          logger.warn("Failed to ack (channel likely closed)");
+        }
       } catch (error) {
         logger.error("Failed processing message", error);
-        ch.nack(msg, false, true); // ponovo stavlja u queue
+        try {
+          ch.nack(msg, false, true);
+        } catch {
+          logger.warn("Failed to nack (channel likely closed)");
+        }
+        const deaths = msg.properties.headers?.["x-death"] as
+          | Array<any>
+          | undefined;
+        const retryCount = deaths?.[0]?.count ?? 0;
+        if (retryCount >= 5) {
+          logger.error(`Message exceeded max retries, discarding`, {
+            routingKey,
+          });
+          try {
+            ch.nack(msg, false, false); // reject without requeue
+          } catch {
+            logger.warn("Failed to nack (channel likely closed)");
+          }
+        } else {
+          try {
+            ch.nack(msg, false, true);
+          } catch {
+            logger.warn("Failed to nack (channel likely closed)");
+          }
+        }
       } finally {
         this.pendingMessages--;
       }
@@ -118,10 +174,47 @@ class RabbitMQService {
     logger.info(`Subscribed to event: ${routingKey}`, { queue: q.queue });
   }
 
+  private async replayConsumers(): Promise<void> {
+    if (!this.channel) {
+      logger.warn("Cannot replay consumers: channel is null");
+      return;
+    }
+
+    if (this.consumers.length === 0) {
+      logger.debug("No consumers to replay");
+      return;
+    }
+
+    for (const consumer of this.consumers) {
+      try {
+        await this.registerConsumer(
+          this.channel,
+          consumer.routingKey,
+          consumer.callback,
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to replay consumer for ${consumer.routingKey}`,
+          error,
+        );
+      }
+    }
+
+    logger.info(`Replayed ${this.consumers.length} consumer(s)`);
+  }
+
   public async close(): Promise<void> {
     this.isShuttingDown = true;
     try {
+      const maxWait = 30_000;
+      const start = Date.now();
       while (this.pendingMessages > 0) {
+        if (Date.now() - start > maxWait) {
+          logger.warn(
+            `Force closing with ${this.pendingMessages} pending messages`,
+          );
+          break;
+        }
         logger.info(`Waiting for ${this.pendingMessages} pending messages...`);
         await new Promise((r) => setTimeout(r, 100)); // check na svakih 100ms
       }
@@ -142,11 +235,3 @@ class RabbitMQService {
 
 const rabbitMQService = RabbitMQService.getInstance();
 export default rabbitMQService;
-
-// import rabbitMQService from "./utils/rabbitmq";
-
-// await rabbitMQService.connect();
-// await rabbitMQService.consume("post.deleted", handlePostDelete);
-// await rabbitMQService.publish("post.created", { id: 123, title: "Hello" });
-
-// channel.prefetch(10); // adjust based on expected throughput
