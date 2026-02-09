@@ -30,7 +30,7 @@ const start = async () => {
       logger.info(`Media service is running on port ${PORT}`);
     });
   } catch (error) {
-    logger.error("Failed to start Post service (DB or RabbitMQ issue)", error);
+    logger.error("Failed to start Media service (DB or RabbitMQ issue)", error);
     process.exit(1);
   }
 };

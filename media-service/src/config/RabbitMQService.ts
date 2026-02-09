@@ -140,11 +140,6 @@ class RabbitMQService {
         }
       } catch (error) {
         logger.error("Failed processing message", error);
-        try {
-          ch.nack(msg, false, true);
-        } catch {
-          logger.warn("Failed to nack (channel likely closed)");
-        }
         const deaths = msg.properties.headers?.["x-death"] as
           | Array<any>
           | undefined;
