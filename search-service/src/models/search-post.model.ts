@@ -24,6 +24,7 @@ const searchPostSchema = new mongoose.Schema<SearchPostDocument>({
   },
   createdAt: {
     type: Date,
+    required: true,
   },
 });
 

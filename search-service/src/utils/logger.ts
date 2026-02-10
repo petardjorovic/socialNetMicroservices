@@ -5,7 +5,7 @@ const logger = winston.createLogger({
   level: NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp(),
-    winston.format.errors({ splat: true }),
+    winston.format.errors({ stack: true }),
     winston.format.splat(),
     winston.format.json(),
   ),

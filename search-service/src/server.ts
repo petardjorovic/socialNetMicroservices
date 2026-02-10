@@ -49,7 +49,7 @@ const rateLimiter = new RateLimiterRedis({
   duration: 1, // in 1 seconds
 });
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use(async (req: Request, res: Response, next: NextFunction) => {
   // const key = req.ip ?? "unknown-ip";
   const key = req.ip;
 
@@ -60,19 +60,19 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       .json({ success: false, message: "Unable to identify client" });
   }
 
-  rateLimiter
-    .consume(key)
-    .then(() => next())
-    .catch((err) => {
-      if (err && typeof err.msBeforeNext === "number") {
-        logger.warn(`Rate limit exceeded for IP: ${key}`);
-        return res
-          .status(429)
-          .json({ success: false, message: "Too many requests" });
-      }
-      logger.error("Rate limiter error", err);
-      return next(err);
-    });
+  try {
+    const rate = await rateLimiter.consume(key);
+    next();
+  } catch (err: any) {
+    if (err && typeof err.msBeforeNext === "number") {
+      logger.warn(`Rate limit exceeded for IP: ${key}`);
+      return res
+        .status(429)
+        .json({ success: false, message: "Too many requests" });
+    }
+    logger.error("Rate limiter error", err);
+    return next(err);
+  }
 });
 
 // IP based rate limiting for sensitive endpoints
@@ -97,10 +97,10 @@ app.use(sensitiveEndpointsLimiter);
 
 // logging
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
+  const startTime = Date.now();
 
   res.on("finish", () => {
-    const duration = Date.now() - start;
+    const duration = Date.now() - startTime;
     logger.info(
       `method: ${req.method}, url: ${req.originalUrl}, ip: ${req.ip}, status: ${res.statusCode}, durationMs: ${duration}`,
     );
@@ -115,7 +115,11 @@ app.use(errorHandler);
 
 void start();
 
+let isShuttingDown: boolean = false;
+
 const gracefulShutdown = async (signal: string, exitCode = 0) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   logger.info(`${signal} received, shutting down gracefully`);
 
   try {
@@ -128,7 +132,14 @@ const gracefulShutdown = async (signal: string, exitCode = 0) => {
   }
 
   if (server) {
-    server.close(() => process.exit(exitCode));
+    const forceTimeout = setTimeout(() => {
+      logger.warn("Forcefully shutting down after timeout");
+      process.exit(exitCode || 1);
+    }, 10_000);
+    server.close(() => {
+      clearTimeout(forceTimeout);
+      process.exit(exitCode);
+    });
   } else {
     process.exit(exitCode);
   }

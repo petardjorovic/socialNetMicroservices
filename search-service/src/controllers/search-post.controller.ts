@@ -3,11 +3,7 @@ import { searchQueryTerm } from "../utils/validationSchemas.js";
 import logger from "../utils/logger.js";
 import SearchPostModel from "../models/search-post.model.js";
 
-export const getSearchedPosts = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const getSearchedPosts = async (req: Request, res: Response) => {
   //* Logging
   logger.info("Search post endpoint hit...");
 
@@ -15,7 +11,7 @@ export const getSearchedPosts = async (
     //* Validate request
     const result = searchQueryTerm.safeParse(req.query);
     if (!result.success) {
-      logger.warn("Seacrh post validation failed", result.error.message);
+      logger.warn("Search post validation failed", result.error.message);
 
       const errors = result.error.issues.map((i) => ({
         field: i.path.join("."),
@@ -27,8 +23,12 @@ export const getSearchedPosts = async (
 
     const { search } = result.data;
 
+    if (!search) {
+      return res.status(200).json({ success: true, results: [] });
+    }
+
     const findedPosts = await SearchPostModel.find(
-      { $text: { $search: search || "" } },
+      { $text: { $search: search } },
       { score: { $meta: "textScore" } },
     )
       .sort({ score: { $meta: "textScore" } })
