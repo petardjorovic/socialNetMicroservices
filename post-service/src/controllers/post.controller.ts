@@ -40,6 +40,18 @@ export const createPost = async (req: Request, res: Response) => {
     });
     await newlyCreatedPost.save();
 
+    //* Publish post.create message to RabbitMQ
+    rabbitMQService
+      .publish("post.created", {
+        postId: newlyCreatedPost._id.toString(),
+        userId: newlyCreatedPost.user.toString(),
+        content: newlyCreatedPost.content,
+        createdAt: newlyCreatedPost.createdAt,
+      })
+      .catch((err) => {
+        logger.error("Failed to publish post.created event", err);
+      });
+
     //* Invalidate cache
     invalidatePostsCache().catch((cacheError) =>
       logger.warn("Post cache invalidation failed", cacheError),
@@ -317,7 +329,7 @@ export const deletePost = async (req: Request, res: Response) => {
 
     //* Publish post.delete message to RabbitMQ
     rabbitMQService
-      .publish("post.delete", {
+      .publish("post.deleted", {
         postId: deletedPost._id,
         userId: req.user!.userId,
         mediaIds: deletedPost.mediaIds,

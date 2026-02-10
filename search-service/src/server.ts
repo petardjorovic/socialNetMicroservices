@@ -12,6 +12,7 @@ import RedisStore, { type RedisReply } from "rate-limit-redis";
 import redisClient from "./config/redis.js";
 import { RateLimiterRedis } from "rate-limiter-flexible";
 import rabbitMQService from "./config/RabbitMQService.js";
+import { registerConsumers } from "./events/subscribers.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -23,6 +24,7 @@ const start = async () => {
     await mongoose.connect(MONGO_URI);
     logger.info("Connected to MongoDB");
     await rabbitMQService.connect();
+    await registerConsumers();
 
     server = app.listen(PORT, () => {
       logger.info(`Search service is running on port ${PORT}`);

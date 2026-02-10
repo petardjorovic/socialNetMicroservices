@@ -17,6 +17,7 @@ import {
   PORT,
   POST_SERVICE_URL,
   REDIS_URL,
+  SEARCH_SERVICE_URL,
 } from "./utils/env.js";
 import logger from "./utils/logger.js";
 import errorHandler from "./middlewares/errorHandler.js";
@@ -186,6 +187,36 @@ app.use(
       return proxyResData;
     },
     parseReqBody: false, // important for file uploads
+  }),
+);
+
+// setting up proxy for our search service
+app.use(
+  "/v1/search",
+  authMiddleware,
+  proxy(SEARCH_SERVICE_URL, {
+    ...proxyOptions,
+    proxyReqOptDecorator: (
+      proxyReqOpts: Omit<RequestOptions, "headers"> & {
+        headers: OutgoingHttpHeaders;
+      },
+      srcReq: Request,
+    ) => {
+      proxyReqOpts.headers["x-request-id"] = srcReq.requestId;
+      proxyReqOpts.headers["x-user-id"] = srcReq.user?.userId;
+      return proxyReqOpts;
+    },
+    userResDecorator: (
+      proxyRes: IncomingMessage,
+      proxyResData: any,
+      userReq: Request,
+      userRes: Response,
+    ) => {
+      logger.info(
+        `Response received from Search service: ${proxyRes.statusCode}`,
+      );
+      return proxyResData;
+    },
   }),
 );
 
