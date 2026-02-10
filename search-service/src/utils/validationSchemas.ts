@@ -1,0 +1,7 @@
+import z from "zod";
+
+export const searchQueryTerm = z.object({
+  search: z.string().optional(),
+});
+
+export type SearchQueryType = z.infer<typeof searchQueryTerm>;
