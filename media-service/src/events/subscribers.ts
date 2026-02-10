@@ -3,7 +3,7 @@ import { handlePostDelete, PostDeletedEvent } from "./media-event.handler.js";
 
 export const registerConsumers = async () => {
   await rabbitMQService.consume<PostDeletedEvent>(
-    "post.delete",
+    "post.deleted",
     handlePostDelete,
   );
 };

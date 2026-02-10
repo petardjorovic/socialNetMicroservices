@@ -3,6 +3,7 @@ import { searchQueryTerm } from "../utils/validationSchemas.js";
 import logger from "../utils/logger.js";
 import SearchPostModel from "../models/search-post.model.js";
 
+//TODO implement redis caching here for 2 to 5 minutes
 export const getSearchedPosts = async (req: Request, res: Response) => {
   //* Logging
   logger.info("Search post endpoint hit...");
