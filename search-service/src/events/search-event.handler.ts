@@ -41,6 +41,7 @@ export const handlePostCreate = async (event: PostCreateEvent) => {
     }
   } catch (error) {
     logger.error(`Create search post error for postId: ${event.postId}`, error);
+    throw error;
   }
 };
 
@@ -59,5 +60,6 @@ export const handlePostDelete = async (event: PostDeleteEvent) => {
     }
   } catch (error) {
     logger.error(`Delete search post error for postId: ${event.postId}`, error);
+    throw error;
   }
 };
