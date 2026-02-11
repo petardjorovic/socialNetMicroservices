@@ -5,6 +5,7 @@ const invalidateSearchPostCache = async (input?: string) => {
   if (input) {
     await redisClient.del(`search-post:${input}`);
     logger.info(`Invalidated cache for input: ${input}`);
+    return;
   }
 
   let cursor = "0";

@@ -1,4 +1,4 @@
-import z, { trim } from "zod";
+import z from "zod";
 
 export const searchQueryTerm = z.object({
   search: z.string().trim().optional(),

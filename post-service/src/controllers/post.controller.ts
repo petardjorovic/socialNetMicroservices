@@ -273,8 +273,8 @@ export const updatePost = async (req: Request, res: Response) => {
     //* Publish post.updated message to RabbitMQ
     rabbitMQService
       .publish("post.updated", {
-        postId: updatedPost._id,
-        userId: req.user?.userId,
+        postId: updatedPost._id.toString(),
+        userId: req.user!.userId,
         content: updatedPost.content,
       })
       .catch((err) =>

@@ -41,9 +41,15 @@ export const getSearchedPosts = async (req: Request, res: Response) => {
 
     if (cachedSearchPost) {
       logger.info("Search-Post cache hit", { cacheKey });
-      return res
-        .status(200)
-        .json({ success: true, results: JSON.parse(cachedSearchPost) });
+      try {
+        const parsed = JSON.parse(cachedSearchPost);
+        return res.status(200).json({ success: true, results: parsed });
+      } catch (parseError) {
+        logger.error(
+          "Search-Post cache parse failed, falling through to DB",
+          parseError,
+        );
+      }
     }
 
     logger.info("Search-Post cache miss", { cacheKey });
