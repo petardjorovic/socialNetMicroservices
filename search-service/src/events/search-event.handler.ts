@@ -1,4 +1,5 @@
 import SearchPostModel from "../models/search-post.model.js";
+import invalidateSearchPostCache from "../utils/invalidateSearchPostCache.js";
 import logger from "../utils/logger.js";
 
 export interface PostCreateEvent {
@@ -6,6 +7,12 @@ export interface PostCreateEvent {
   userId: string;
   content: string;
   createdAt: string;
+}
+
+export interface PostUpdateEvent {
+  postId: string;
+  userId: string;
+  content: string;
 }
 
 export interface PostDeleteEvent {
@@ -36,11 +43,49 @@ export const handlePostCreate = async (event: PostCreateEvent) => {
 
     if (result.upsertedCount > 0) {
       logger.info(`Search post inserted: ${event.postId}`);
+      invalidateSearchPostCache()
+        .then(() =>
+          logger.info("Search-Post cache invalidation triggered", {
+            postId: event.postId,
+          }),
+        )
+        .catch((err) =>
+          logger.error("Search-Post cache invalidation failed", err),
+        );
     } else {
       logger.info(`Search post already exists: ${event.postId}`);
     }
   } catch (error) {
     logger.error(`Create search post error for postId: ${event.postId}`, error);
+    throw error;
+  }
+};
+
+export const handlePostUpdate = async (event: PostUpdateEvent) => {
+  logger.info("Handling post.updated event", { postId: event.postId });
+
+  try {
+    const foundPost = await SearchPostModel.findOneAndUpdate(
+      { postId: event.postId, userId: event.userId },
+      { content: event.content },
+    );
+
+    if (foundPost) {
+      logger.info(`Search post updated: ${event.postId}`);
+      invalidateSearchPostCache()
+        .then(() =>
+          logger.info("Search-Post cache invalidation triggered", {
+            postId: event.postId,
+          }),
+        )
+        .catch((err) =>
+          logger.error("Search-Post cache invalidation failed", err),
+        );
+    } else {
+      logger.info(`Search post not found: ${event.postId}`);
+    }
+  } catch (error) {
+    logger.error(`Update search post error for postId: ${event.postId}`, error);
     throw error;
   }
 };
@@ -55,6 +100,15 @@ export const handlePostDelete = async (event: PostDeleteEvent) => {
 
     if (result) {
       logger.info(`Search post deleted: ${event.postId}`);
+      invalidateSearchPostCache()
+        .then(() =>
+          logger.info("Search-Post cache invalidation triggered", {
+            postId: event.postId,
+          }),
+        )
+        .catch((err) =>
+          logger.error("Search-Post cache invalidation failed", err),
+        );
     } else {
       logger.info(`Search post already deleted: ${event.postId}`);
     }

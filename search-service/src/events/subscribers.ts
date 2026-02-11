@@ -2,8 +2,10 @@ import rabbitMQService from "../config/RabbitMQService.js";
 import {
   handlePostCreate,
   handlePostDelete,
+  handlePostUpdate,
   PostCreateEvent,
   PostDeleteEvent,
+  PostUpdateEvent,
 } from "./search-event.handler.js";
 
 export const registerConsumers = async () => {
@@ -11,6 +13,12 @@ export const registerConsumers = async () => {
     "post.created",
     handlePostCreate,
   );
+
+  await rabbitMQService.consume<PostUpdateEvent>(
+    "post.updated",
+    handlePostUpdate,
+  );
+
   await rabbitMQService.consume<PostDeleteEvent>(
     "post.deleted",
     handlePostDelete,

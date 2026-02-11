@@ -270,6 +270,17 @@ export const updatePost = async (req: Request, res: Response) => {
         .json({ success: false, message: "Post not found" });
     }
 
+    //* Publish post.updated message to RabbitMQ
+    rabbitMQService
+      .publish("post.updated", {
+        postId: updatedPost._id.toString(),
+        userId: req.user!.userId,
+        content: updatedPost.content,
+      })
+      .catch((err) =>
+        logger.error("Failed to publish post.updated event", err),
+      );
+
     //* Invalidate cache
     invalidatePostsCache(postId).catch((cacheError) =>
       logger.warn("Post cache invalidation failed", cacheError),
@@ -327,7 +338,7 @@ export const deletePost = async (req: Request, res: Response) => {
         .json({ success: false, message: "Post not found" });
     }
 
-    //* Publish post.delete message to RabbitMQ
+    //* Publish post.deleted message to RabbitMQ
     rabbitMQService
       .publish("post.deleted", {
         postId: deletedPost._id,
