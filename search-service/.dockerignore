@@ -1,0 +1,28 @@
+# Ignore common version control directories
+.git
+.svn
+.gitignore
+
+# Ignore development/editor-specific files and directories
+.vscode
+.idea
+.DS_Store
+
+# Ignore dependency and build output folders (common for Node.js and Python projects)
+node_modules
+venv
+build
+dist
+coverage
+
+# Ignore specific file types, such as log files or sensitive environment files
+*.log
+.env
+.env.*
+!.env.example
+
+# Ignore the Dockerfile and other Docker-related files themselves
+Dockerfile
+docker-compose.yml
+README.md
+LICENSE
