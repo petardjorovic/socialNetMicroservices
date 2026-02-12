@@ -9,7 +9,7 @@ Purpose: handles creating, updating, deleting and fetching posts; publishes/cons
 
 - **Environment variables:**
   - `NODE_ENV` (default `development`)
-  - `PORT` (default `3001`)
+  - `PORT` (default `3002`)
   - `MONGO_URI` (MongoDB connection string)
   - `JWT_SECRET` (JWT secret)
   - `REDIS_URL` (Redis connection)

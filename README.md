@@ -3,6 +3,7 @@
 Purpose: A small microservices-based social network prototype. It provides user identity, post management, media handling, and search functionality behind an API Gateway.
 
 **Services**
+
 - **api-gateway**: central reverse-proxy and entrypoint. Routes to identity, post, media and search services; provides global middleware (security headers, rate limiting, request logging).
 - **identity-service**: user registration, authentication (JWT), and refresh-token management. Uses MongoDB and Redis for rate limiting.
 - **post-service**: CRUD for posts; publishes events for other services via RabbitMQ; uses MongoDB.
@@ -10,6 +11,7 @@ Purpose: A small microservices-based social network prototype. It provides user 
 - **search-service**: maintains a search index for posts and exposes search endpoints; syncs via RabbitMQ events.
 
 **Quick Start (per-service)**
+
 - Install dependencies in each service folder:
 
 ```bash
@@ -92,25 +94,26 @@ RABBITMQ_URL=amqp://localhost
 ```
 
 **Ports & URLs**
+
 - Default ports (adjust in `.env`): API Gateway `3000`, Identity `3001`, Post `3002`, Media `3003`, Search `3004`.
 - The API Gateway proxies under `/v1/*` to service `/api/*` endpoints — check `api-gateway/src/server.ts` for details.
 
 **Logging & Observability**
+
 - Services use `winston` for logging; request logging is implemented in each `src/server.ts`.
 - Rate limiting uses Redis-backed stores; ensure `REDIS_URL` is reachable in development.
 
 **Notes & Troubleshooting**
+
 - Ensure MongoDB, Redis and RabbitMQ are running before starting services that depend on them.
 - If ports collide, update `PORT` values in the respective `.env` files and the `IDENTITY_SERVICE_URL` / `POST_SERVICE_URL` etc. in the API Gateway.
 - Media uploads stream through the gateway. The gateway sets `parseReqBody: false` to preserve file upload streams.
 
 **Useful links**
-- Service READMEs:
-	- [api-gateway/README.md](api-gateway/README.md)
-	- [identity-service/README.md](identity-service/README.md)
-	- [post-service/README.md](post-service/README.md)
-	- [media-service/README.md](media-service/README.md)
-	- [search-service/README.md](search-service/README.md)
 
----
-If you want, I can add docker-compose for local development, example curl requests for main endpoints, or CI scripts—which would you prefer next?
+- Service READMEs:
+  - [api-gateway/README.md](api-gateway/README.md)
+  - [identity-service/README.md](identity-service/README.md)
+  - [post-service/README.md](post-service/README.md)
+  - [media-service/README.md](media-service/README.md)
+  - [search-service/README.md](search-service/README.md)
