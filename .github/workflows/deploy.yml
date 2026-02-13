@@ -13,6 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create API gateway env
+        run: echo "${{ secrets.API_GATEWAY_ENV }}" > ./api-gateway/.env.prod
+
+      - name: Create Identity service env
+        run: echo "${{ secrets.IDENTITY_SERVICE_ENV }}" > ./identity-service/.env.prod
+
+      - name: Create Post service env
+        run: echo "${{ secrets.POST_SERVICE_ENV }}" > ./post-service/.env.prod
+
+      - name: Create Media service env
+        run: echo "${{ secrets.MEDIA_SERVICE_ENV }}" > ./media-service/.env.prod
+
+      - name: Create Search service env
+        run: echo "${{ secrets.SEARCH_SERVICE_ENV }}" > ./search-service/.env.prod
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -60,7 +75,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /root/var/projects
+            cd /root/var/projects/socialNetMicroservices
             git pull origin main
             docker-compose down
             docker-compose up -d
