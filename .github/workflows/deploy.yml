@@ -60,7 +60,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /root/var/projects/socialNetMicroservices
+            cd /root/var/projects
             git pull origin main
             docker-compose down
             docker-compose up -d
