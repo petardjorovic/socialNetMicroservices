@@ -67,6 +67,10 @@ jobs:
           echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
+      - name: Test SSH connectivity
+        run: |
+          ssh -vvv -i ~/.ssh/id_rsa root@142.93.162.34 "echo 'SSH works!'"
+
       - name: SSH into VPS and deploy
         uses: appleboy/ssh-action@v1
         with:
