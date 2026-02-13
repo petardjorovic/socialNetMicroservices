@@ -1,7 +1,3 @@
-networks:
-  backend:
-    driver: bridge
-
 services:
   api-gateway:
     build:
@@ -10,12 +6,10 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    env_file: ./api-gateway/.env
+    env_file: ./api-gateway/.env.prod
     depends_on:
       redis:
         condition: service_healthy
-    environment:
-      - REDIS_URL=${REDIS_URL}
     networks:
       - backend
   identity-service:
@@ -23,17 +17,12 @@ services:
       context: ./identity-service
       target: production
     restart: unless-stopped
-    ports:
-      - "3001:3001"
-    env_file: ./identity-service/.env
+    env_file: ./identity-service/.env.prod
     depends_on:
       mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      - REDIS_URL=${REDIS_URL}
-      - MONGODB_URL=${MONGODB_URL}
     networks:
       - backend
   post-service:
@@ -41,9 +30,7 @@ services:
       context: ./post-service
       target: production
     restart: unless-stopped
-    ports:
-      - "3002:3002"
-    env_file: ./post-service/.env
+    env_file: ./post-service/.env.prod
     depends_on:
       mongodb:
         condition: service_healthy
@@ -51,10 +38,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    environment:
-      - REDIS_URL=${REDIS_URL}
-      - RABBITMQ_URL=${RABBITMQ_URL}
-      - MONGODB_URL=${MONGODB_URL}
     networks:
       - backend
   media-service:
@@ -62,9 +45,7 @@ services:
       context: ./media-service
       target: production
     restart: unless-stopped
-    ports:
-      - "3003:3003"
-    env_file: ./media-service/.env
+    env_file: ./media-service/.env.prod
     depends_on:
       mongodb:
         condition: service_healthy
@@ -72,10 +53,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    environment:
-      - REDIS_URL=${REDIS_URL}
-      - RABBITMQ_URL=${RABBITMQ_URL}
-      - MONGODB_URL=${MONGODB_URL}
     networks:
       - backend
   search-service:
@@ -83,9 +60,7 @@ services:
       context: ./search-service
       target: production
     restart: unless-stopped
-    ports:
-      - "3004:3004"
-    env_file: ./search-service/.env
+    env_file: ./search-service/.env.prod
     depends_on:
       mongodb:
         condition: service_healthy
@@ -93,16 +68,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    environment:
-      - REDIS_URL=${REDIS_URL}
-      - RABBITMQ_URL=${RABBITMQ_URL}
-      - MONGODB_URL=${MONGODB_URL}
     networks:
       - backend
   mongodb:
     image: mongo:7
-    ports:
-      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
     networks:
       - backend
     healthcheck:
@@ -112,8 +83,6 @@ services:
       retries: 5
   redis:
     image: redis:7.2
-    ports:
-      - "6379:6379"
     networks:
       - backend
     healthcheck:
@@ -123,9 +92,8 @@ services:
       retries: 5
   rabbitmq:
     image: rabbitmq:3.12-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - backend
     healthcheck:
@@ -133,3 +101,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
