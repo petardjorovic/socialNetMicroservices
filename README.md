@@ -31,67 +31,65 @@ npm run dev
 
 Each service supports `npm run dev` (uses `tsx watch`), `npm run build` (TypeScript compile) and `npm run start` for production.
 
-**Environment variables (examples)**
-Create a `.env` file in each service folder. Minimal examples:
+**Docker Compose Setup**
 
-- `api-gateway/.env`
+To run all services and their dependencies (MongoDB, Redis, RabbitMQ) using Docker Compose:
 
-```
-NODE_ENV=development
-PORT=3000
-IDENTITY_SERVICE_URL=http://localhost:3001
-POST_SERVICE_URL=http://localhost:3002
-MEDIA_SERVICE_URL=http://localhost:3003
-SEARCH_SERVICE_URL=http://localhost:3004
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_jwt_secret
+1. Set up environment files for Docker. Create `.env.prod` files in each service folder based on `.env.example`:
+
+```bash
+cd api-gateway && cp .env.example .env.prod && cd ..
+cd identity-service && cp .env.example .env.prod && cd ..
+cd post-service && cp .env.example .env.prod && cd ..
+cd media-service && cp .env.example .env.prod && cd ..
+cd search-service && cp .env.example .env.prod && cd ..
 ```
 
-- `identity-service/.env`
+2. Update the `.env.prod` files with appropriate configuration values (e.g., service names should reference the Docker container names like `mongodb`, `redis`, `rabbitmq`).
 
-```
-NODE_ENV=development
-PORT=3001
-MONGO_URI=mongodb://localhost:27017/identity
-JWT_SECRET=your_jwt_secret
-REDIS_URL=redis://localhost:6379
+3. Build and start all services:
+
+```bash
+docker-compose up -d
 ```
 
-- `post-service/.env`
+This will:
 
-```
-NODE_ENV=development
-PORT=3002
-MONGO_URI=mongodb://localhost:27017/posts
-JWT_SECRET=your_jwt_secret
-REDIS_URL=redis://localhost:6379
-RABBITMQ_URL=amqp://localhost
-```
+- Build Docker images for all microservices
+- Start MongoDB, Redis, and RabbitMQ containers
+- Start all microservice containers
+- Set up networking and health checks
 
-- `media-service/.env`
+To view logs:
 
-```
-NODE_ENV=development
-PORT=3003
-MONGO_URI=mongodb://localhost:27017/media
-JWT_SECRET=your_jwt_secret
-REDIS_URL=redis://localhost:6379
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-RABBITMQ_URL=amqp://localhost
+```bash
+docker-compose logs -f
 ```
 
-- `search-service/.env`
+To stop services:
 
+```bash
+docker-compose down
 ```
-NODE_ENV=development
-PORT=3004
-MONGO_URI=mongodb://localhost:27017/search
-JWT_SECRET=your_jwt_secret
-REDIS_URL=redis://localhost:6379
-RABBITMQ_URL=amqp://localhost
+
+**Environment variables**
+
+Each service provides a `.env.example` file as a template. Copy it to create your own configuration file:
+
+- **For development (local setup):** Create a `.env` file in each service folder based on `.env.example`
+- **For production (Docker Compose):** Create a `.env.prod` file in each service folder based on `.env.example`
+
+Example setup for development:
+
+```bash
+cd api-gateway && cp .env.example .env && cd ..
+cd identity-service && cp .env.example .env && cd ..
+cd post-service && cp .env.example .env && cd ..
+cd media-service && cp .env.example .env && cd ..
+cd search-service && cp .env.example .env && cd ..
 ```
+
+Update each `.env` file with your local configuration values (e.g., `localhost` URLs, `mongodb://localhost:27017`, etc.).
 
 **Ports & URLs**
 

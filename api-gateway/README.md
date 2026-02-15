@@ -7,7 +7,7 @@ Purpose: central gateway that proxies requests to backend services (identity, po
 - **Build:** `npm run build`
 - **Start (prod):** `npm run start`
 
-- **Environment variables:**
+- **Environment variables:** Create a `.env` file (or `.env.prod` for Docker Compose) based on `.env.example`:
   - `NODE_ENV` (default `development`)
   - `PORT` (default `3000`)
   - `IDENTITY_SERVICE_URL` (URL for Identity service)
@@ -16,6 +16,8 @@ Purpose: central gateway that proxies requests to backend services (identity, po
   - `SEARCH_SERVICE_URL` (URL for Search service)
   - `REDIS_URL` (Redis connection for rate-limiter)
   - `JWT_SECRET` (shared JWT secret)
+
+- **Setup:** Copy `.env.example` to `.env` and update with your configuration values.
 
 - **Proxied routes:**
   - `/v1/auth` -> Identity service

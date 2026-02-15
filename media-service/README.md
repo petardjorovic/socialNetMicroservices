@@ -7,7 +7,7 @@ Purpose: manages media uploads, storage (Cloudinary), and media-related events (
 - **Build:** `npm run build`
 - **Start (prod):** `npm run start`
 
-- **Environment variables:**
+- **Environment variables:** Create a `.env` file (or `.env.prod` for Docker Compose) based on `.env.example`:
   - `NODE_ENV` (default `development`)
   - `PORT` (default `3003`)
   - `MONGO_URI` (MongoDB connection string)
@@ -16,6 +16,8 @@ Purpose: manages media uploads, storage (Cloudinary), and media-related events (
   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Cloudinary credentials)
   - `CLOUDINARY_URL` (optional full Cloudinary URL)
   - `RABBITMQ_URL` (RabbitMQ connection string)
+
+- **Setup:** Copy `.env.example` to `.env` and update with your configuration values.
 
 - **Routes:**
   - `/api/media` — media upload/download endpoints

@@ -7,13 +7,15 @@ Purpose: handles creating, updating, deleting and fetching posts; publishes/cons
 - **Build:** `npm run build`
 - **Start (prod):** `npm run start`
 
-- **Environment variables:**
+- **Environment variables:** Create a `.env` file (or `.env.prod` for Docker Compose) based on `.env.example`:
   - `NODE_ENV` (default `development`)
   - `PORT` (default `3002`)
   - `MONGO_URI` (MongoDB connection string)
   - `JWT_SECRET` (JWT secret)
   - `REDIS_URL` (Redis connection)
   - `RABBITMQ_URL` (RabbitMQ connection string)
+
+- **Setup:** Copy `.env.example` to `.env` and update with your configuration values.
 
 - **Routes:**
   - `/api/posts` — endpoints for post CRUD and related operations
