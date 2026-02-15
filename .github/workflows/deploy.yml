@@ -44,8 +44,8 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          docker-compose -f docker-compose.yml build --pull
-          docker-compose -f docker-compose.yml push
+          docker compose -f docker-compose.yml build --pull
+          docker compose -f docker-compose.yml push
 
   deploy:
     needs: build
@@ -65,5 +65,5 @@ jobs:
           script: |
             cd /root/var/projects/socialNetMicroservices
             git pull origin main
-            docker-compose pull
-            docker-compose up -d --remove-orphans
+            docker compose pull
+            docker compose up -d --remove-orphans
