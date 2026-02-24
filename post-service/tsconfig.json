@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     /* Language & runtime */
-    "target": "ES2022",
+    "target": "es2022",
     "lib": ["ES2022"],
 
     /* Node ESM */
@@ -19,6 +19,7 @@
 
     /* Interop & correctness */
     "esModuleInterop": true,
+    "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     // "allowImportingTsExtensions": true,
@@ -31,8 +32,8 @@
     "skipLibCheck": true,
 
     /* Environment types */
-    "types": ["node"]
+    "types": ["node", "vitest"]
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }
