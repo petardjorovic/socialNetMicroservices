@@ -1,7 +1,7 @@
 import winston, { createLogger } from "winston";
-import { getConfig } from "./env.js";
+import { getEnv } from "./env.js";
 
-const { NODE_ENV } = getConfig();
+const NODE_ENV = getEnv("NODE_ENV", "development");
 
 const logger = createLogger({
   level: NODE_ENV === "production" ? "info" : "debug",

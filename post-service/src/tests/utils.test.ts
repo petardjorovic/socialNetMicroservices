@@ -13,6 +13,7 @@ describe("env utils", () => {
   });
 
   it("returns default value if env not set", () => {
+    delete process.env["MY_VAR"];
     expect(getEnv("MY_VAR", "default")).toBe("default");
   });
 

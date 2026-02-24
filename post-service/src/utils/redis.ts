@@ -1,8 +1,8 @@
 import { Redis } from "ioredis";
-import { getConfig } from "./env.js";
+import { getEnv } from "./env.js";
 import logger from "./logger.js";
 
-const { REDIS_URL } = getConfig();
+const REDIS_URL = getEnv("REDIS_URL");
 
 const redisClient = new Redis(REDIS_URL);
 
