@@ -1,6 +1,8 @@
 import amqp, { Channel, ChannelModel, ConsumeMessage } from "amqplib";
-import { RABBITMQ_URL } from "../utils/env.js";
+import { getConfig } from "../utils/env.js";
 import logger from "../utils/logger.js";
+
+const { RABBITMQ_URL } = getConfig();
 
 const EXCHANGE_NAME = "my_network_events";
 
