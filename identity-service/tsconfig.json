@@ -9,8 +9,8 @@
     "moduleResolution": "nodenext",
 
     /* Project structure */
-    "rootDir": "src",
-    "outDir": "dist",
+    // "rootDir": "src",
+    // "outDir": "dist",
 
     /* Type safety */
     "strict": true,
@@ -33,6 +33,6 @@
     /* Environment types */
     "types": ["node"]
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "exclude": ["node_modules"]
 }

@@ -2,7 +2,7 @@ import cors from "cors";
 
 const ALLOWED_ORIGINS = ["http://localhost:5173", "https://myexamplesite.com"];
 
-const configurationCors = () => {
+export const configurationCors = () => {
   return cors({
     origin: (origin, callback) => {
       if (!origin || ALLOWED_ORIGINS.includes(origin)) {
@@ -16,5 +16,3 @@ const configurationCors = () => {
     maxAge: 600,
   });
 };
-
-export default configurationCors;

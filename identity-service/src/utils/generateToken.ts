@@ -2,9 +2,9 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { UserDocument } from "../models/user.model.js";
 import { JWT_SECRET } from "./env.js";
-import RefreshTokenModel from "../models/refresh-token.model.js";
+import { createToken } from "../repositories/refresh-token.repository.js";
 
-const generateTokens = async (user: UserDocument) => {
+export const generateTokens = async (user: UserDocument) => {
   const accessToken = jwt.sign(
     {
       userId: user._id,
@@ -18,13 +18,7 @@ const generateTokens = async (user: UserDocument) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // refresh token expires in 7 days
 
-  await RefreshTokenModel.create({
-    token: refreshToken,
-    user: user._id,
-    expiresAt,
-  });
+  await createToken(refreshToken, user._id, expiresAt);
 
   return { accessToken, refreshToken };
 };
-
-export default generateTokens;

@@ -1,9 +1,5 @@
 import z from "zod";
 
-export type RegistrationInput = z.infer<typeof registrationSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
-
 export const loginSchema = z
   .object({
     email: z.email(),
@@ -28,3 +24,7 @@ export const logoutSchema = z
     refreshToken: z.string().min(80),
   })
   .strict();
+
+export type RegistrationInput = z.infer<typeof registrationSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;

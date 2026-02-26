@@ -1,7 +1,7 @@
 import winston from "winston";
 import { NODE_ENV } from "./env.js";
 
-const logger = winston.createLogger({
+export const logger = winston.createLogger({
   level: NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp(),
