@@ -1,6 +1,5 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import logger from "../utils/logger.js";
-import { generateTokens } from "../utils/generateToken.js";
 import {
   loginUser,
   logoutUser,
@@ -9,11 +8,7 @@ import {
 } from "../services/user.service.js";
 
 // USER REGISTRATION
-export const userRegistration = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const userRegistration = async (req: Request, res: Response) => {
   //* logging
   logger.info("User Registration endpoint hit...");
 
@@ -30,11 +25,7 @@ export const userRegistration = async (
 };
 
 // USER LOGIN
-export const userLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const userLogin = async (req: Request, res: Response) => {
   //* logging
   logger.info("User Login endpoint hit...");
 
