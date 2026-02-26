@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
-
-const SALT_ROUNDS = 10;
 
 export interface UserDocument {
   _id: mongoose.Types.ObjectId;
@@ -12,11 +9,7 @@ export interface UserDocument {
   updatedAt?: Date;
 }
 
-interface UserMethods {
-  comparePassword(value: string): Promise<boolean>;
-}
-
-const userSchema = new mongoose.Schema<UserDocument, {}, UserMethods>(
+const userSchema = new mongoose.Schema<UserDocument>(
   {
     username: {
       type: String,
@@ -41,21 +34,9 @@ const userSchema = new mongoose.Schema<UserDocument, {}, UserMethods>(
   },
 );
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-
-  this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
-});
-
-userSchema.methods.comparePassword = async function (val: string) {
-  return bcrypt.compare(val, this.password);
-};
-
 userSchema.index({ username: "text" });
 
-const UserModel = mongoose.model<
+export const UserModel = mongoose.model<
   UserDocument,
-  mongoose.Model<UserDocument, {}, UserMethods>
+  mongoose.Model<UserDocument>
 >("User", userSchema);
-
-export default UserModel;
