@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { UserDocument } from "../models/user.model.js";
 import { JWT_SECRET } from "./env.js";
