@@ -51,7 +51,12 @@ describe("generateTokens", () => {
       { expiresIn: "60m" },
     );
 
-    expect(createToken).toHaveBeenCalled();
+    expect(createToken).toHaveBeenCalledOnce();
+    expect(createToken).toHaveBeenCalledWith(
+      "mockRefreshToken",
+      mockUser._id,
+      expect.any(Date),
+    );
     expect(result).toEqual({
       accessToken: "mockAccessToken",
       refreshToken: "mockRefreshToken",

@@ -34,11 +34,12 @@ describe("refreshToken", () => {
 
   it("should return new access and refresh token if old token is valid", async () => {
     const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 1);
     const mockToken = {
       _id: new Types.ObjectId(),
       token: "oldRefreshToken",
       user: new Types.ObjectId(),
-      expiresAt: expiresAt.setDate(expiresAt.getDate() + 1),
+      expiresAt,
     } as any;
 
     const mockUser = {
