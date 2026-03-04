@@ -14,6 +14,7 @@ describe("asyncHandler middleware", () => {
     await handler(req, res, next);
 
     expect(controller).toHaveBeenCalledWith(req, res, next);
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("should call next with error if controller throws", async () => {
