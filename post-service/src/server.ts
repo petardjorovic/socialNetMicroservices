@@ -5,18 +5,15 @@ import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import RedisStore, { RedisReply } from "rate-limit-redis";
-import { getEnv } from "./utils/env.js";
 import logger from "./utils/logger.js";
 import redisClient from "./utils/redis.js";
 import postRouter from "./routes/index.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import rabbitMQService from "./config/RabbitMQService.js";
+import { MONGO_URI, PORT } from "./utils/env.js";
 // import "./utils/redis.js";
 
-const MONGO_URI = getEnv("MONGO_URI");
-const PORT = getEnv("PORT", "3000");
-
-const app = express();
+export const app = express();
 app.set("trust proxy", 1);
 
 let server: ReturnType<typeof app.listen> | undefined;

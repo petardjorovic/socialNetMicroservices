@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     /* Language & runtime */
-    "target": "es2022",
+    "target": "ES2022",
     "lib": ["ES2022"],
 
     /* Node ESM */
@@ -9,8 +9,8 @@
     "moduleResolution": "nodenext",
 
     /* Project structure */
-    "rootDir": "src",
-    "outDir": "dist",
+    // "rootDir": "src",
+    // "outDir": "dist",
 
     /* Type safety */
     "strict": true,
@@ -19,7 +19,6 @@
 
     /* Interop & correctness */
     "esModuleInterop": true,
-    "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     // "allowImportingTsExtensions": true,
@@ -32,8 +31,8 @@
     "skipLibCheck": true,
 
     /* Environment types */
-    "types": ["node", "vitest"]
+    "types": ["node"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "tests"],
+  "exclude": ["node_modules"]
 }

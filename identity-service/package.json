@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "keywords": [],
-  "author": "",
+  "author": "Petar Djorovic",
   "license": "ISC",
   "description": "",
   "dependencies": {

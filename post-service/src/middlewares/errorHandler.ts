@@ -1,8 +1,6 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from "express";
 import logger from "../utils/logger.js";
-import { getEnv } from "../utils/env.js";
-
-const NODE_ENV = getEnv("NODE_ENV", "development");
+import { NODE_ENV } from "../utils/env.js";
 
 const errorHandler: ErrorRequestHandler = (
   err: Error,
