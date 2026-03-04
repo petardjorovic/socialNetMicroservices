@@ -1,0 +1,101 @@
+services:
+  api-gateway:
+    image: petardjorovic/socialnetmicroservices-api-gateway:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: ./api-gateway/.env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+  identity-service:
+    image: petardjorovic/socialnetmicroservices-identity-service:latest
+    restart: unless-stopped
+    env_file: ./identity-service/.env.prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+  post-service:
+    image: petardjorovic/socialnetmicroservices-post-service:latest
+    restart: unless-stopped
+    env_file: ./post-service/.env.prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+  media-service:
+    image: petardjorovic/socialnetmicroservices-media-service:latest
+    restart: unless-stopped
+    env_file: ./media-service/.env.prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+  search-service:
+    image: petardjorovic/socialnetmicroservices-search-service:latest
+    restart: unless-stopped
+    env_file: ./search-service/.env.prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7.2
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  rabbitmq_data:

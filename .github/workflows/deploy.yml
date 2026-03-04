@@ -60,5 +60,5 @@ jobs:
           script: |
             cd /root/var/projects/socialNetMicroservices
             git pull origin main
-            docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
