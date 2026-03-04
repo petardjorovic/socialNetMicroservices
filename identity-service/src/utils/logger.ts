@@ -1,8 +1,10 @@
 import winston from "winston";
 import { NODE_ENV } from "./env.js";
 
+const isTest = NODE_ENV === "test";
+
 export const logger = winston.createLogger({
-  level: NODE_ENV === "production" ? "info" : "debug",
+  level: isTest ? "silent" : NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),

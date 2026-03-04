@@ -33,7 +33,7 @@ export const userLogin = async (req: Request, res: Response) => {
   const { accessToken, refreshToken } = await loginUser(req.body);
 
   //* return response
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "User logged in successfully",
     accessToken,
