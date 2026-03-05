@@ -1,20 +1,11 @@
 import "dotenv/config";
-import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
-import cors from "cors";
-import helmet from "helmet";
-import { rateLimit } from "express-rate-limit";
-import RedisStore, { RedisReply } from "rate-limit-redis";
 import logger from "./utils/logger.js";
 import redisClient from "./utils/redis.js";
-import postRouter from "./routes/index.js";
-import errorHandler from "./middlewares/errorHandler.js";
-import rabbitMQService from "./config/RabbitMQService.js";
 import { MONGO_URI, PORT } from "./utils/env.js";
+import rabbitMQService from "./config/RabbitMQService.js";
+import { app } from "./app.js";
 // import "./utils/redis.js";
-
-export const app = express();
-app.set("trust proxy", 1);
 
 let server: ReturnType<typeof app.listen> | undefined;
 
@@ -32,48 +23,6 @@ const start = async () => {
     process.exit(1);
   }
 };
-
-// middlewares
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req: Request, res: Response, next: NextFunction) => {
-    logger.warn(`Sensitive endpoint rate limit exceeded for IP ${req.ip}`);
-    return res
-      .status(429)
-      .json({ success: false, message: "Too many requests" });
-  },
-  store: new RedisStore({
-    sendCommand: (command: string, ...args: string[]) =>
-      redisClient.call(command, ...args) as Promise<RedisReply>,
-  }),
-});
-
-// logging
-app.use((req, res, next) => {
-  const start = Date.now();
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    logger.info(
-      `method: ${req.method}, url: ${req.originalUrl}, ip: ${req.ip}, status: ${res.statusCode}, durationMs: ${duration}`,
-    );
-  });
-
-  next();
-});
-
-app.use(limiter);
-
-app.use("/api/posts", postRouter);
-
-app.use(errorHandler);
 
 void start();
 

@@ -3,6 +3,7 @@ import { NODE_ENV } from "./env.js";
 
 const logger = winston.createLogger({
   level: NODE_ENV === "production" ? "info" : "debug",
+  silent: NODE_ENV === "test",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),

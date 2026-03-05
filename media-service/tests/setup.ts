@@ -1,0 +1,10 @@
+process.env.NODE_ENV = "test";
+process.env.PORT = "3003";
+process.env.MONGO_URI = "test";
+process.env.RABBITMQ_URL = "test";
+process.env.REDIS_URL = "test";
+process.env.JWT_SECRET = "test";
+process.env.CLOUDINARY_API_KEY = "test";
+process.env.CLOUDINARY_API_SECRET = "test";
+process.env.CLOUDINARY_CLOUD_NAME = "test";
+process.env.CLOUDINARY_URL = "test";

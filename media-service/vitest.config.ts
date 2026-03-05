@@ -10,13 +10,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      exclude: ["src/app.ts", "src/utils/logger.ts", "src/utils/redis.ts"],
-      // thresholds: {
-      //   lines: 90,
-      //   functions: 90,
-      //   branches: 70,
-      //   statements: 90,
-      // },
+      exclude: ["src/app.ts", "src/utils/logger.ts", "src/config/redis.ts"],
+      //   thresholds: {
+      //     lines: 90,
+      //     functions: 90,
+      //     branches: 70,
+      //     statements: 90,
+      //   },
     },
   },
 });
