@@ -1,7 +1,9 @@
 import { describe, vi, beforeEach, it, expect } from "vitest";
 
 vi.mock("jsonwebtoken", () => ({
-  sign: vi.fn(),
+  default: {
+    sign: vi.fn(),
+  },
 }));
 
 vi.mock("crypto", () => ({
@@ -19,7 +21,7 @@ vi.mock("../../../src/utils/env.js", () => ({
 }));
 
 import { Types } from "mongoose";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateTokens } from "../../../src/utils/generateToken.js";
 import { createToken } from "../../../src/repositories/refresh-token.repository.js";
