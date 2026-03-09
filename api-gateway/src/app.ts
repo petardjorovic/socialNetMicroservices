@@ -81,6 +81,10 @@ const proxyOptions: ProxyOptions = {
   },
 };
 
+app.get("/health", (_, res) => {
+  return res.status(200).json({ status: "ok" });
+});
+
 // setting up proxy for our identity service
 app.use(
   "/v1/auth",
