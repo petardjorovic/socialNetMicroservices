@@ -14,6 +14,7 @@ import redisClient from "./utils/redis.js";
 import {
   IDENTITY_SERVICE_URL,
   MEDIA_SERVICE_URL,
+  NODE_ENV,
   POST_SERVICE_URL,
   SEARCH_SERVICE_URL,
 } from "./utils/env.js";
@@ -52,7 +53,9 @@ const rateLimiter = rateLimit({
   }),
 });
 
-app.use(rateLimiter);
+if (NODE_ENV !== "test") {
+  app.use(rateLimiter);
+}
 
 // logging
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -69,7 +72,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-const proxyOptions: ProxyOptions = {
+app.get("/health", (_, res) => {
+  return res.status(200).json({ status: "ok" });
+});
+
+export const proxyOptions: ProxyOptions = {
   proxyReqPathResolver: function (req: Request) {
     return req.originalUrl.replace(/^\/v1/, "/api");
   },
@@ -80,10 +87,6 @@ const proxyOptions: ProxyOptions = {
       .json({ message: "Internal server error", error: err.message });
   },
 };
-
-app.get("/health", (_, res) => {
-  return res.status(200).json({ status: "ok" });
-});
 
 // setting up proxy for our identity service
 app.use(
