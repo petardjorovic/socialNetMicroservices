@@ -7,6 +7,7 @@ export const createMockContext = () => {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
     send: vi.fn().mockReturnThis(),
+    locals: {} as any,
   } as unknown as Response;
   const next = vi.fn() as NextFunction;
 
