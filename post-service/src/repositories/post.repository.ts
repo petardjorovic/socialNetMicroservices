@@ -3,7 +3,7 @@ import PostModel, { PostDocument } from "../models/post.model.js";
 export const createNewPost = async (
   userId: string,
   content: string,
-  mediaIds = [],
+  mediaIds: string[] = [],
 ): Promise<PostDocument> => {
   const newlyCreatedPost = await PostModel.create({
     user: userId,
@@ -40,7 +40,7 @@ export const findPostById = async (
 export const updatePost = async (
   postId: string,
   userId: string,
-  updateData: Record<string, any>,
+  updateData: Partial<Pick<PostDocument, "content" | "mediaIds">>,
 ) => {
   const updatedPost = await PostModel.findOneAndUpdate(
     { _id: postId, user: userId },
@@ -48,11 +48,11 @@ export const updatePost = async (
     { new: true },
   ).lean();
 
-  return updatePost;
+  return updatedPost;
 };
 
 export const findPostAndDelete = async (postId: string, userId: string) => {
-  return await PostModel.findOneAndDelete({
+  return PostModel.findOneAndDelete({
     _id: postId,
     user: userId,
   });
